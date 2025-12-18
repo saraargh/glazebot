@@ -1,3 +1,7 @@
+# =========================
+# GLAZE BOT — PART 1 OF 2
+# =========================
+
 from __future__ import annotations
 
 import os
@@ -45,23 +49,20 @@ HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
 
 LONDON = ZoneInfo("Europe/London")
 
-DAILY_DROP_HOUR = 17
-DAILY_DROP_MINUTE = 0
+DAILY_DROP_HOUR = 09
+DAILY_DROP_MINUTE = 25
 
 MONTHLY_DROP_HOUR = 18
 MONTHLY_DROP_MINUTE = 0
 
 DAILY_PING_PREFIX = "🍯 A glaze has landed…"
-MONTHLY_PING_PREFIX = "🍯🍯🍯 MONTHLY GLAZE RESULTS 🍯🍯🍯"
+MONTHLY_PING_PREFIX = "🍯 MONTHLY GLAZE RESULTS..."
 
 FOOTER_TEXT = "Use /glaze to submit an anonymous glaze — remember to keep it SFW! ⚠️"
 SELF_GLAZE_ROAST = "🚫🚫 {user} only ugly people glaze themselves — try being nice to someone else!"
 NOT_YOUR_MENU = "🍯 Hands off — this glaze menu isn’t yours!"
 
-MONTHLY_GIF_URL = (
-    "https://cdn.discordapp.com/ephemeral-attachments/1450222619327729757/"
-    "1450977394948051015/IMG_5594.gif"
-)
+MONTHLY_GIF_URL = "https://cdn.discordapp.com/attachments/1450977394948051015/IMG_5594.gif"
 
 LOCK_GUILD_ID = int(os.getenv("GUILD_ID", "0"))
 
@@ -82,14 +83,15 @@ class GlazeBot(discord.Client):
         glaze_scheduler.start()
 
     async def on_ready(self):
-        print(f"🍯 Glaze is online as {self.user} | guilds={len(self.guilds)}")
+        print(f"🍯 Glaze online as {self.user}")
 
 bot = GlazeBot()
 
+
 # =========================================================
-# GitHub JSON store (NO CACHING — JSON IS SOURCE OF TRUTH)
+# GitHub JSON Store
 # =========================================================
-DEFAULT_DATA: Dict[str, Any] = {
+DEFAULT_DATA = {
     "config": {
         "drop_channel_id": None,
         "report_channel_id": None,
@@ -104,11 +106,21 @@ DEFAULT_DATA: Dict[str, Any] = {
     "wins": {}
 }
 
+_store_lock = asyncio.Lock()
+_cached_data: Optional[Dict[str, Any]] = None
+_cached_sha: Optional[str] = None
+
+
 def _github_enabled() -> bool:
     return bool(GITHUB_REPO and GITHUB_TOKEN)
 
+
+def _deepcopy(data):
+    return json.loads(json.dumps(data))
+
+
 def _merge_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
-    merged = json.loads(json.dumps(DEFAULT_DATA))
+    merged = _deepcopy(DEFAULT_DATA)
     for k, v in data.items():
         if isinstance(v, dict) and isinstance(merged.get(k), dict):
             merged[k].update(v)
@@ -116,97 +128,91 @@ def _merge_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
             merged[k] = v
     return merged
 
+
 async def load_data() -> Tuple[Dict[str, Any], Optional[str]]:
-    if not _github_enabled():
-        return json.loads(json.dumps(DEFAULT_DATA)), None
+    global _cached_data, _cached_sha
 
-    url = f"{API_BASE}/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
-    r = await asyncio.to_thread(requests.get, url, headers=HEADERS, timeout=20)
+    async with _store_lock:
+        if _cached_data is not None:
+            return _cached_data, _cached_sha
 
-    if r.status_code == 200:
-        payload = r.json()
-        sha = payload.get("sha")
-        raw = base64.b64decode(payload["content"]).decode("utf-8")
-        data = _merge_defaults(json.loads(raw))
-        return data, sha
+        if not _github_enabled():
+            _cached_data = _deepcopy(DEFAULT_DATA)
+            return _cached_data, None
 
-    if r.status_code == 404:
-        data = json.loads(json.dumps(DEFAULT_DATA))
-        await save_data(data, None, message="Create glaze_data.json")
-        return data, None
+        url = f"{API_BASE}/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
+        r = await asyncio.to_thread(requests.get, url, headers=HEADERS)
 
-    raise RuntimeError(f"GitHub load failed: {r.status_code} {r.text}")
+        if r.status_code == 200:
+            payload = r.json()
+            raw = base64.b64decode(payload["content"]).decode()
+            _cached_sha = payload["sha"]
+            _cached_data = _merge_defaults(json.loads(raw))
+            return _cached_data, _cached_sha
 
-async def save_data(
-    data: Dict[str, Any],
-    sha: Optional[str],
-    message: str = "Update glaze data"
-) -> None:
-    if not _github_enabled():
-        return
+        if r.status_code == 404:
+            _cached_data = _deepcopy(DEFAULT_DATA)
+            await save_data(_cached_data, None, "Create glaze_data.json")
+            return _cached_data, None
 
-    url = f"{API_BASE}/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
+        raise RuntimeError(r.text)
 
-    content = base64.b64encode(
-        json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
-    ).decode("utf-8")
 
-    payload = {
-        "message": message,
-        "content": content
-    }
-    if sha:
-        payload["sha"] = sha
+async def save_data(data: Dict[str, Any], sha: Optional[str], message: str):
+    global _cached_data, _cached_sha
 
-    r = await asyncio.to_thread(
-        requests.put,
-        url,
-        headers=HEADERS,
-        json=payload,
-        timeout=20
-    )
+    async with _store_lock:
+        if not _github_enabled():
+            _cached_data = _deepcopy(data)
+            _cached_sha = sha
+            return
 
-    if r.status_code not in (200, 201):
-        raise RuntimeError(f"GitHub save failed: {r.status_code} {r.text}")
+        payload = {
+            "message": message,
+            "content": base64.b64encode(json.dumps(data, indent=2).encode()).decode()
+        }
+        if sha:
+            payload["sha"] = sha
+
+        url = f"{API_BASE}/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
+        r = await asyncio.to_thread(requests.put, url, headers=HEADERS, json=payload)
+
+        if r.status_code not in (200, 201):
+            raise RuntimeError(r.text)
+
+        res = r.json()
+        _cached_sha = res["content"]["sha"]
+        _cached_data = _deepcopy(data)
 
 
 # =========================================================
 # Helpers
 # =========================================================
-def now_utc() -> datetime:
+def now_utc():
     return datetime.now(timezone.utc)
 
-def now_london() -> datetime:
-    return datetime.now(tz=LONDON)
-
-def iso_utc(dt: datetime) -> str:
+def iso_utc(dt):
     return dt.astimezone(timezone.utc).isoformat()
 
-def parse_iso(s: str) -> datetime:
-    # accepts isoformat with offset
+def parse_iso(s):
     return datetime.fromisoformat(s)
 
-def month_key_from_utc(dt: datetime) -> str:
-    return dt.astimezone(timezone.utc).strftime("%Y-%m")
+def month_key(dt):
+    return dt.strftime("%Y-%m")
 
-def pretty_month(month_key: str) -> str:
-    dt = datetime.strptime(month_key + "-01", "%Y-%m-%d")
-    return dt.strftime("%B %Y")
 
-def is_last_day_of_month_london(dt: datetime) -> bool:
-    # dt is aware London time
-    tomorrow = (dt + timedelta(days=1)).date()
-    return tomorrow.day == 1
+# =========================================================
+# UI + MODALS CONTINUE IN PART 2
+# =========================================================
+# =========================
+# GLAZE BOT — PART 2 OF 2
+# (Paste directly under PART 1)
+# =========================
 
-def is_admin(interaction: discord.Interaction, admin_role_ids: List[int]) -> bool:
-    if not isinstance(interaction.user, discord.Member):
-        return False
-    member: discord.Member = interaction.user
-    if member.guild_permissions.administrator:
-        return True
-    roles = {r.id for r in member.roles}
-    return any(rid in roles for rid in admin_role_ids)
 
+# =========================================================
+# Embeds
+# =========================================================
 def build_daily_embed(recipient_display: str, text: str) -> discord.Embed:
     e = discord.Embed(
         title="🍯 GLAZEEEEE DROP",
@@ -215,15 +221,19 @@ def build_daily_embed(recipient_display: str, text: str) -> discord.Embed:
     e.set_footer(text=FOOTER_TEXT)
     return e
 
-def build_monthly_embed(month_key: str, winner_mention: str, count: int) -> discord.Embed:
+def build_monthly_embed(month_key_str: str, winner_mention: str, count: int) -> discord.Embed:
+    # month_key_str like "2025-12"
+    dt = datetime.strptime(month_key_str + "-01", "%Y-%m-%d")
+    pretty = dt.strftime("%B %Y")
     e = discord.Embed(
         title="🍯 MOST GLAZED",
         description=(
-            f"The Landing Strip’s most glazed member for **{pretty_month(month_key)}** "
+            f"The Landing Strip’s most glazed member for **{pretty}** "
             f"is {winner_mention} with a total of **{count} glazes** — yayyyy 🎉🎉"
         )
     )
-    e.set_image(url=MONTHLY_GIF_URL)
+    if MONTHLY_GIF_URL:
+        e.set_image(url=MONTHLY_GIF_URL)
     e.set_footer(text=FOOTER_TEXT)
     return e
 
@@ -242,12 +252,48 @@ def build_shared_embed(glaze_text: str, note: str) -> discord.Embed:
     )
     if note.strip():
         e.add_field(name="💬", value=f"“{note.strip()}”", inline=False)
-    e.set_footer(text="Shared via /glaze 🍯")
+    e.set_footer(text="Shared via /myglaze 🍯")
     return e
 
 
 # =========================================================
-# UI: /myglaze hub view (two grey buttons)
+# Permissions + Guild helpers
+# =========================================================
+async def get_single_guild() -> Optional[discord.Guild]:
+    if not bot.guilds:
+        return None
+    if LOCK_GUILD_ID:
+        return discord.utils.get(bot.guilds, id=LOCK_GUILD_ID)
+    return bot.guilds[0]
+
+def is_admin(interaction: discord.Interaction, admin_role_ids: List[int]) -> bool:
+    if not isinstance(interaction.user, discord.Member):
+        return False
+    member: discord.Member = interaction.user
+    if member.guild_permissions.administrator:
+        return True
+    roles = {r.id for r in member.roles}
+    return any(rid in roles for rid in admin_role_ids)
+
+async def get_drop_channel(guild: discord.Guild) -> Optional[discord.TextChannel]:
+    data, _ = await load_data()
+    cid = data["config"].get("drop_channel_id")
+    if not cid:
+        return None
+    ch = guild.get_channel(int(cid))
+    return ch if isinstance(ch, discord.TextChannel) else None
+
+async def get_report_channel(guild: discord.Guild) -> Optional[discord.TextChannel]:
+    data, _ = await load_data()
+    cid = data["config"].get("report_channel_id")
+    if not cid:
+        return None
+    ch = guild.get_channel(int(cid))
+    return ch if isinstance(ch, discord.TextChannel) else None
+
+
+# =========================================================
+# UI: /myglaze hub view
 # =========================================================
 class MyGlazeHubView(discord.ui.View):
     def __init__(self, owner_id: int):
@@ -295,7 +341,6 @@ class ThanksModal(discord.ui.Modal, title="Say Thanks! 💐"):
                 "💐 Someone wants to thank you for your glaze!\n\n"
                 f"🍯 **Your glaze:**\n“{self.glaze_text}”\n\n"
             )
-
             if thank_text:
                 dm += f"💬 **Their message:**\n“{thank_text}”"
 
@@ -303,10 +348,7 @@ class ThanksModal(discord.ui.Modal, title="Say Thanks! 💐"):
         except Exception:
             pass
 
-        await interaction.response.send_message(
-            "💐 Thanks sent!",
-            ephemeral=True
-        )
+        await interaction.response.send_message("💐 Thanks sent!", ephemeral=True)
 
 
 # =========================================================
@@ -388,19 +430,18 @@ class DeleteScoldView(discord.ui.View):
         glaze["deleted"] = True
         await save_data(data, sha, message="Delete glaze (mod action)")
 
-        # scold DM
+        # scold DM includes the reported glaze text
         try:
             u = await bot.fetch_user(int(glaze["sender_id"]))
             await u.send(
-    "⚠️ **Your glaze was reported and removed**\n\n"
-    "🍯 **Reported glaze:**\n"
-    f"“{glaze['text']}”\n\n"
-    "Please remember to keep glazes kind and SFW."
-)
+                "⚠️ **Your glaze was reported and removed**\n\n"
+                "🍯 **Reported glaze:**\n"
+                f"“{glaze['text']}”\n\n"
+                "Please remember to keep glazes kind and SFW."
+            )
         except Exception:
             pass
 
-        # disable button after use
         button.disabled = True
         await interaction.response.edit_message(content="✅ Deleted and scolded.", view=self)
 
@@ -467,11 +508,8 @@ class MyGlazesView(discord.ui.View):
             await interaction.response.send_message("😔 That glaze is no longer available.", ephemeral=True)
             return
         await interaction.response.send_modal(
-    ThanksModal(
-        sender_id=int(g["sender_id"]),
-        glaze_text=g["text"]
-    )
-)
+            ThanksModal(sender_id=int(g["sender_id"]), glaze_text=g["text"])
+        )
 
     @discord.ui.button(label="Report ⚠️", style=discord.ButtonStyle.secondary)
     async def report_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -499,29 +537,6 @@ class MyGlazesView(discord.ui.View):
 # =========================================================
 # Core actions (open glazes, DM mail, share, report)
 # =========================================================
-async def get_single_guild() -> Optional[discord.Guild]:
-    if not bot.guilds:
-        return None
-    if LOCK_GUILD_ID:
-        return discord.utils.get(bot.guilds, id=LOCK_GUILD_ID)
-    return bot.guilds[0]
-
-async def get_drop_channel(guild: discord.Guild) -> Optional[discord.TextChannel]:
-    data, _ = await load_data()
-    cid = data["config"].get("drop_channel_id")
-    if not cid:
-        return None
-    ch = guild.get_channel(int(cid))
-    return ch if isinstance(ch, discord.TextChannel) else None
-
-async def get_report_channel(guild: discord.Guild) -> Optional[discord.TextChannel]:
-    data, _ = await load_data()
-    cid = data["config"].get("report_channel_id")
-    if not cid:
-        return None
-    ch = guild.get_channel(int(cid))
-    return ch if isinstance(ch, discord.TextChannel) else None
-
 async def open_my_glazes(interaction: discord.Interaction):
     data, _ = await load_data()
     glz = [g for g in data["glazes"] if int(g["recipient_id"]) == interaction.user.id and not g.get("deleted")]
@@ -529,7 +544,6 @@ async def open_my_glazes(interaction: discord.Interaction):
         await interaction.response.send_message("😔 You don’t have any glazes yet…", ephemeral=True)
         return
 
-    # newest first for browsing
     glz.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     ids = [g["id"] for g in glz]
 
@@ -569,7 +583,6 @@ async def share_glaze(interaction: discord.Interaction, glaze_id: str, note: str
     if not glaze or glaze.get("deleted"):
         return False, "⚠️ This glaze can’t be shared."
 
-    # recipient-only
     if interaction.user.id != int(glaze["recipient_id"]):
         return False, NOT_YOUR_MENU
 
@@ -631,52 +644,37 @@ async def controlpanel(
     report_channel: discord.TextChannel | None = None,
     admin_role: discord.Role | None = None
 ):
-    # Permission check (server admins only)
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("🚫 Admins only.")
         return
 
     data, sha = await load_data()
-
-    # Track what changed for the confirmation message
     changes = []
 
-    # Update drop channel
     if drop_channel is not None:
         data["config"]["drop_channel_id"] = drop_channel.id
         changes.append(f"• Drop channel → {drop_channel.mention}")
 
-    # Update report channel
     if report_channel is not None:
         data["config"]["report_channel_id"] = report_channel.id
         changes.append(f"• Report channel → {report_channel.mention}")
 
-    # Toggle admin role
     if admin_role is not None:
         role_ids = set(data["config"].get("admin_role_ids", []))
-
         if admin_role.id in role_ids:
             role_ids.remove(admin_role.id)
             changes.append(f"• Admin role removed → {admin_role.mention}")
         else:
             role_ids.add(admin_role.id)
             changes.append(f"• Admin role added → {admin_role.mention}")
-
         data["config"]["admin_role_ids"] = list(role_ids)
 
-    # Save only if something actually changed
     if not changes:
-        await interaction.response.send_message(
-            "🍯 Nothing changed — provide at least one option to update."
-        )
+        await interaction.response.send_message("🍯 Nothing changed — provide at least one option to update.")
         return
 
     await save_data(data, sha, message="Update Glaze controlpanel")
-
-    # Build current admin role list
     current_roles = ", ".join(f"<@&{r}>" for r in data["config"]["admin_role_ids"]) or "None"
-
-    # Public confirmation
     await interaction.response.send_message(
         "🍯 **Glaze configuration updated**\n"
         + "\n".join(changes)
@@ -703,7 +701,14 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
         await interaction.response.send_message("🍯 Keep it under 500 characters please.", ephemeral=True)
         return
 
+    # IMPORTANT: always read latest JSON, not stale cache
+    # (invalidate cache first so manual JSON edits take effect immediately)
+    global _cached_data, _cached_sha
+    _cached_data = None
+    _cached_sha = None
+
     data, sha = await load_data()
+
     last = data["cooldowns"].get(str(interaction.user.id))
     if last:
         diff = now_utc() - parse_iso(last)
@@ -719,7 +724,7 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
         "recipient_id": member.id,
         "text": text,
         "created_at": iso_utc(created),
-        "month_key": month_key_from_utc(created),
+        "month_key": month_key(created),
         "dropped_at": None,
         "deleted": False,
         "reported": False
@@ -727,6 +732,7 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
 
     data["glazes"].append(glaze)
     data["cooldowns"][str(interaction.user.id)] = iso_utc(created)
+
     await save_data(data, sha, message="Add glaze")
 
     await interaction.response.send_message("✅ Your glaze has been submitted! 🍯", ephemeral=True)
@@ -738,69 +744,37 @@ async def myglaze_cmd(interaction: discord.Interaction):
     if not glz:
         await interaction.response.send_message("😔 You don’t have any glazes yet… but your time will come 🍯", ephemeral=True)
         return
-
     await interaction.response.send_message("🍯 Your glaze menu:", view=MyGlazeHubView(owner_id=interaction.user.id), ephemeral=True)
 
 @bot.tree.command(name="glazeleaderboard", description="Monthly winners + top glazers")
 async def glazeleaderboard_cmd(interaction: discord.Interaction):
     data, _ = await load_data()
 
-    # ---------- Monthly winners ----------
     wins = data.get("wins", {})
     if wins:
-        sorted_wins = sorted(
-            ((int(uid), cnt) for uid, cnt in wins.items()),
-            key=lambda x: x[1],
-            reverse=True
-        )[:5]
-
-        monthly_lines = [
-            f"**{i}.** <@{uid}> — **{cnt}** win(s)"
-            for i, (uid, cnt) in enumerate(sorted_wins, start=1)
-        ]
+        sorted_wins = sorted(((int(uid), cnt) for uid, cnt in wins.items()), key=lambda x: x[1], reverse=True)[:5]
+        monthly_lines = [f"**{i}.** <@{uid}> — **{cnt}** win(s)" for i, (uid, cnt) in enumerate(sorted_wins, start=1)]
     else:
         monthly_lines = ["No monthly winners yet 🍯"]
 
-    # ---------- Top glaze senders ----------
-    sender_counts = {}
+    sender_counts: Dict[int, int] = {}
     for g in data.get("glazes", []):
         if not g.get("deleted"):
-            sender_counts[g["sender_id"]] = sender_counts.get(g["sender_id"], 0) + 1
+            sid = int(g["sender_id"])
+            sender_counts[sid] = sender_counts.get(sid, 0) + 1
 
     if sender_counts:
-        sorted_senders = sorted(
-            sender_counts.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )[:5]
-
-        sender_lines = [
-            f"**{i}.** <@{uid}> — **{cnt}** glazes sent"
-            for i, (uid, cnt) in enumerate(sorted_senders, start=1)
-        ]
+        sorted_senders = sorted(sender_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        sender_lines = [f"**{i}.** <@{uid}> — **{cnt}** glazes sent" for i, (uid, cnt) in enumerate(sorted_senders, start=1)]
     else:
         sender_lines = ["No glazes sent yet 🍯"]
 
-    # ---------- Embed ----------
     embed = discord.Embed(title="🍯 Glaze Leaderboard")
-
-    embed.add_field(
-        name="🏆 Most Glazed (Monthly Wins)",
-        value="\n".join(monthly_lines),
-        inline=False
-    )
-
-    embed.add_field(
-        name="🍯 Top Glazers (Most Sent)",
-        value="\n".join(sender_lines),
-        inline=False
-    )
-
+    embed.add_field(name="🏆 Most Glazed (Monthly Wins)", value="\n".join(monthly_lines), inline=False)
+    embed.add_field(name="🍯 Top Glazers (Most Sent)", value="\n".join(sender_lines), inline=False)
     embed.set_footer(text=FOOTER_TEXT)
 
     await interaction.response.send_message(embed=embed)
-
-####TEST EMBEDS####
 
 @bot.tree.command(name="testdrop", description="Force a Glaze drop for testing (admin only)")
 @app_commands.describe(kind="Which drop to test")
@@ -810,18 +784,12 @@ async def glazeleaderboard_cmd(interaction: discord.Interaction):
         app_commands.Choice(name="Monthly Glaze", value="monthly")
     ]
 )
-async def testdrop(
-    interaction: discord.Interaction,
-    kind: app_commands.Choice[str]
-):
+async def testdrop(interaction: discord.Interaction, kind: app_commands.Choice[str]):
     data, sha = await load_data()
 
-    # 🔒 Restrict to Glaze admin roles
     admin_roles = data["config"].get("admin_role_ids", [])
     if not is_admin(interaction, admin_roles):
-        await interaction.response.send_message(
-            "🚫 You don’t have permission to do that."
-        )
+        await interaction.response.send_message("🚫 You don’t have permission to do that.")
         return
 
     guild = await get_single_guild()
@@ -829,98 +797,62 @@ async def testdrop(
         await interaction.response.send_message("⚠️ Server not ready.")
         return
 
-    # 📍 Post WHERE the command is run
     drop_channel = interaction.channel
+    if not isinstance(drop_channel, discord.TextChannel):
+        await interaction.response.send_message("⚠️ Run this in a text channel.")
+        return
 
-    # --------------------
-    # DAILY TEST DROP
-    # --------------------
     if kind.value == "daily":
-        pending = [
-            g for g in data["glazes"]
-            if not g.get("deleted") and not g.get("dropped_at")
-        ]
+        pending = [g for g in data["glazes"] if not g.get("deleted") and not g.get("dropped_at")]
         pending.sort(key=lambda x: x.get("created_at", ""))
 
         if not pending:
-            await interaction.response.send_message(
-                "🍯 No pending glazes to drop."
-            )
+            await interaction.response.send_message("🍯 No pending glazes to drop.")
             return
 
         g = pending[0]
         member = guild.get_member(int(g["recipient_id"]))
 
         if member:
-            await drop_channel.send(
-                f"🍯 **(Test Drop)** A glaze has landed…\n{member.mention}"
-            )
-            await drop_channel.send(
-                embed=build_daily_embed(member.display_name, g["text"])
-            )
+            await drop_channel.send(f"🍯 **(Test Drop)** A glaze has landed…\n{member.mention}")
+            await drop_channel.send(embed=build_daily_embed(member.display_name, g["text"]))
         else:
-            await drop_channel.send(
-                "🍯 **(Test Drop)** A glaze landed, but the member is no longer here."
-            )
+            await drop_channel.send("🍯 **(Test Drop)** A glaze landed, but the member is no longer here.")
 
         g["dropped_at"] = iso_utc(now_utc())
-        data["meta"]["last_daily_drop_date"] = now_london().strftime("%Y-%m-%d")
+        data["meta"]["last_daily_drop_date"] = datetime.now(tz=LONDON).strftime("%Y-%m-%d")
         await save_data(data, sha, message="Test daily glaze drop")
 
-        await interaction.response.send_message(
-            "🍯 Daily test drop complete."
-        )
+        await interaction.response.send_message("🍯 Daily test drop complete.")
 
-    # --------------------
-    # MONTHLY TEST DROP
-    # --------------------
     else:
-        month_key = now_utc().strftime("%Y-%m")
-        winner = compute_month_winner(data, month_key)
-
+        mk = datetime.now(timezone.utc).strftime("%Y-%m")
+        winner = compute_month_winner(data, mk)
         if not winner:
-            await interaction.response.send_message(
-                "🍯 No glazes available for this month."
-            )
+            await interaction.response.send_message("🍯 No glazes available for this month.")
             return
 
         winner_id, count = winner
+        await drop_channel.send("🍯🍯🍯 **(Test Drop)** MONTHLY GLAZE RESULTS 🍯🍯🍯\n@everyone")
+        await drop_channel.send(embed=build_monthly_embed(mk, f"<@{winner_id}>", count))
 
-        await drop_channel.send(
-            "🍯🍯🍯 **(Test Drop)** MONTHLY GLAZE RESULTS 🍯🍯🍯\n@everyone"
-        )
-        await drop_channel.send(
-            embed=build_monthly_embed(
-                month_key,
-                f"<@{winner_id}>",
-                count
-            )
-        )
-
-        # Record so it doesn't double-fire accidentally
-        data["meta"]["last_monthly_announce"][month_key] = iso_utc(now_utc())
+        data["meta"]["last_monthly_announce"][mk] = iso_utc(now_utc())
         data["wins"][str(winner_id)] = int(data["wins"].get(str(winner_id), 0)) + 1
         await save_data(data, sha, message="Test monthly glaze drop")
 
-        await interaction.response.send_message(
-            "🍯 Monthly test drop complete."
-        )
+        await interaction.response.send_message("🍯 Monthly test drop complete.")
+
 
 # =========================================================
-# Monthly winner calculation (tie-break: who reached first)
+# Monthly winner calculation
 # =========================================================
-def compute_month_winner(data: Dict[str, Any], month_key: str) -> Optional[Tuple[int, int]]:
-    month_glazes = [
-        g for g in data["glazes"]
-        if g.get("month_key") == month_key and not g.get("deleted")
-    ]
+def compute_month_winner(data: Dict[str, Any], month_key_str: str) -> Optional[Tuple[int, int]]:
+    month_glazes = [g for g in data["glazes"] if g.get("month_key") == month_key_str and not g.get("deleted")]
     if not month_glazes:
         return None
 
-    # sort by created_at (stable)
     month_glazes.sort(key=lambda x: x.get("created_at", ""))
 
-    # final counts
     counts: Dict[int, int] = {}
     for g in month_glazes:
         rid = int(g["recipient_id"])
@@ -931,7 +863,6 @@ def compute_month_winner(data: Dict[str, Any], month_key: str) -> Optional[Tuple
     if len(tied) == 1:
         return tied[0], best
 
-    # tie-break: earliest time their "best-th" glaze happened
     nth_time: Dict[int, str] = {}
     running: Dict[int, int] = {rid: 0 for rid in tied}
     for g in month_glazes:
@@ -947,8 +878,12 @@ def compute_month_winner(data: Dict[str, Any], month_key: str) -> Optional[Tuple
 
 
 # =========================================================
-# Scheduler (daily + monthly) — runs every minute
+# Scheduler
 # =========================================================
+def is_last_day_of_month_london(dt: datetime) -> bool:
+    tomorrow = (dt + timedelta(days=1)).date()
+    return tomorrow.day == 1
+
 @tasks.loop(minutes=1)
 async def glaze_scheduler():
     try:
@@ -957,8 +892,7 @@ async def glaze_scheduler():
             return
 
         data, sha = await load_data()
-        cfg = data.get("config", {})
-        drop_cid = cfg.get("drop_channel_id")
+        drop_cid = data.get("config", {}).get("drop_channel_id")
         if not drop_cid:
             return
 
@@ -966,38 +900,29 @@ async def glaze_scheduler():
         if not isinstance(drop_ch, discord.TextChannel):
             return
 
-        now_ldn = now_london()
+        now_ldn = datetime.now(tz=LONDON)
         today_str = now_ldn.strftime("%Y-%m-%d")
 
-        # -------------------------
-        # Daily drop @ 17:00 London
-        # (Guarded so it runs once per day)
-        # -------------------------
+        # daily drop
         if now_ldn.hour == DAILY_DROP_HOUR and now_ldn.minute == DAILY_DROP_MINUTE:
             if data["meta"].get("last_daily_drop_date") != today_str:
-                # pick oldest pending glaze (not dropped, not deleted)
                 pending = [g for g in data["glazes"] if not g.get("deleted") and not g.get("dropped_at")]
                 pending.sort(key=lambda x: x.get("created_at", ""))
 
                 if pending:
                     g = pending[0]
                     recipient = guild.get_member(int(g["recipient_id"]))
-
                     if recipient:
                         await drop_ch.send(f"{DAILY_PING_PREFIX}\n{recipient.mention}")
                         await drop_ch.send(embed=build_daily_embed(recipient.display_name, g["text"]))
-                    # mark dropped whether recipient exists or not (prevents stuck items)
                     g["dropped_at"] = iso_utc(now_utc())
 
                 data["meta"]["last_daily_drop_date"] = today_str
                 await save_data(data, sha, message="Daily glaze drop")
 
-        # -------------------------
-        # Monthly announce @ 18:00 London on last day
-        # (Guarded so it runs once per month)
-        # -------------------------
+        # monthly drop
         if is_last_day_of_month_london(now_ldn) and now_ldn.hour == MONTHLY_DROP_HOUR and now_ldn.minute == MONTHLY_DROP_MINUTE:
-            mk = now_utc().strftime("%Y-%m")  # month bucket from UTC for stored month_key
+            mk = datetime.now(timezone.utc).strftime("%Y-%m")
             already = data["meta"].get("last_monthly_announce", {}).get(mk)
             if not already:
                 winner = compute_month_winner(data, mk)
@@ -1006,13 +931,11 @@ async def glaze_scheduler():
                     await drop_ch.send(f"{MONTHLY_PING_PREFIX}\n@everyone")
                     await drop_ch.send(embed=build_monthly_embed(mk, f"<@{winner_id}>", count))
 
-                    # record monthly + increment wins
                     data["meta"]["last_monthly_announce"][mk] = iso_utc(now_utc())
                     data["wins"][str(winner_id)] = int(data["wins"].get(str(winner_id), 0)) + 1
-
                     await save_data(data, sha, message=f"Monthly most glazed {mk}")
+
     except Exception as e:
-        # Avoid task death; log to console
         print("Scheduler error:", repr(e))
 
 
