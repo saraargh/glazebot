@@ -1,7 +1,7 @@
 {
   "config": {
-    "drop_channel_id": 1444274467864838207,
-    "report_channel_id": 1444274467864838207,
+    "drop_channel_id": 1398508734506078240,
+    "report_channel_id": 1404103684069265519,
     "admin_role_ids": [
       1404104881098195015,
       1413545658006110401,
@@ -23,7 +23,7 @@
       "id": "8c41b22d-add1-4966-97ee-d0932e72ea70",
       "sender_id": 1238834298338152498,
       "recipient_id": 1258358477903102024,
-      "text": "you’re just like sooooooooooo nice and pretty 🤩",
+      "text": "you\u2019re just like sooooooooooo nice and pretty \ud83e\udd29",
       "created_at": "2025-12-18T09:32:38.677194+00:00",
       "month_key": "2025-12",
       "dropped_at": null,
