@@ -202,12 +202,9 @@ def month_key(dt):
 
 
 # =========================================================
-# UI + MODALS CONTINUE IN PART 2
+# Embed styling
 # =========================================================
-# =========================
-# GLAZE BOT — PART 2 OF 2
-# (Paste directly under PART 1)
-# =========================
+GLAZE_YELLOW = discord.Color.from_rgb(255, 200, 64)
 
 
 # =========================================================
@@ -216,42 +213,63 @@ def month_key(dt):
 def build_daily_embed(recipient_display: str, text: str) -> discord.Embed:
     e = discord.Embed(
         title="🍯 GLAZEEEEE DROP",
-        description=f"Today’s glaze is for **{recipient_display}**\n\n*“{text}”*"
+        description=f"Today’s glaze is for **{recipient_display}**\n\n*“{text}”*",
+        color=GLAZE_YELLOW
     )
     e.set_footer(text=FOOTER_TEXT)
     return e
+
 
 def build_monthly_embed(month_key_str: str, winner_mention: str, count: int) -> discord.Embed:
     # month_key_str like "2025-12"
     dt = datetime.strptime(month_key_str + "-01", "%Y-%m-%d")
     pretty = dt.strftime("%B %Y")
+
     e = discord.Embed(
         title="🍯 MOST GLAZED",
         description=(
             f"The Landing Strip’s most glazed member for **{pretty}** "
             f"is {winner_mention} with a total of **{count} glazes** — yayyyy 🎉🎉"
-        )
+        ),
+        color=GLAZE_YELLOW
     )
+
     if MONTHLY_GIF_URL:
         e.set_image(url=MONTHLY_GIF_URL)
+
     e.set_footer(text=FOOTER_TEXT)
     return e
 
-def build_my_glaze_embed(index: int, total: int, glaze_text: str, received_date_str: str) -> discord.Embed:
+
+def build_my_glaze_embed(
+    index: int,
+    total: int,
+    glaze_text: str,
+    received_date_str: str
+) -> discord.Embed:
     e = discord.Embed(
         title=f"🍯 Your Glaze ({index + 1} / {total})",
-        description=f"*“{glaze_text}”*\n\n📅 Received: {received_date_str}"
+        description=f"*“{glaze_text}”*\n\n📅 Received: {received_date_str}",
+        color=GLAZE_YELLOW
     )
     e.set_footer(text=FOOTER_TEXT)
     return e
+
 
 def build_shared_embed(glaze_text: str, note: str) -> discord.Embed:
     e = discord.Embed(
         title="🍯 SHARED GLAZE",
-        description=f"*“{glaze_text}”*"
+        description=f"*“{glaze_text}”*",
+        color=GLAZE_YELLOW
     )
+
     if note.strip():
-        e.add_field(name="💬", value=f"“{note.strip()}”", inline=False)
+        e.add_field(
+            name="💬",
+            value=f"“{note.strip()}”",
+            inline=False
+        )
+
     e.set_footer(text="Shared via /myglaze 🍯")
     return e
 
@@ -875,6 +893,118 @@ def compute_month_winner(data: Dict[str, Any], month_key_str: str) -> Optional[T
 
     tied.sort(key=lambda rid: nth_time.get(rid, "9999-99-99"))
     return tied[0], best
+    
+    
+##### help command######
+
+@bot.tree.command(name="help", description="How Glaze works 🍯")
+@app_commands.describe(admin="Show admin-only help (Glaze admins only)")
+async def help_cmd(
+    interaction: discord.Interaction,
+    admin: bool | None = False
+):
+    data, _ = await load_data()
+
+    # --------------------
+    # Public help embed
+    # --------------------
+    embed = discord.Embed(
+        title="🍯 Glaze Help",
+        description=(
+            "**Glaze lets you send anonymous kindness to other members.**\n\n"
+            "One glaze per day, dropped publicly — sweet messages only 💛"
+        ),
+        color=GLAZE_YELLOW
+    )
+
+    embed.add_field(
+        name="✨ Commands",
+        value=(
+            "`/glaze <member> <message>`\n"
+            "Send an anonymous glaze (once every 24h)\n\n"
+            "`/myglaze`\n"
+            "View glazes you’ve received (buttons + DM option)\n\n"
+            "`/glazeleaderboard`\n"
+            "See monthly winners & top glazers"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🕒 Rules",
+        value=(
+            "• One glaze every **24 hours**\n"
+            "• Anonymous by default\n"
+            "• Must be **kind & SFW**\n"
+            "• Reported glazes may be removed"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🍯 Drops",
+        value=(
+            "• **Daily Drop** — one pending glaze is shared each day\n"
+            "• **Monthly Drop** — most glazed member wins 🎉\n"
+            "• Ties are broken fairly"
+        ),
+        inline=False
+    )
+
+    embed.set_footer(text=FOOTER_TEXT)
+
+    # --------------------
+    # Admin section (hidden)
+    # --------------------
+    if admin:
+        admin_roles = data["config"].get("admin_role_ids", [])
+
+        if not is_admin(interaction, admin_roles):
+            await interaction.response.send_message(
+                "🍯 That section is for Glaze admins only.",
+                ephemeral=True
+            )
+            return
+
+        admin_embed = discord.Embed(
+            title="🔒 Glaze Admin Help",
+            description="Admin-only tools & moderation controls.",
+            color=GLAZE_YELLOW
+        )
+
+        admin_embed.add_field(
+            name="🛠️ Admin Commands",
+            value=(
+                "`/controlpanel`\n"
+                "Set drop channel, report channel & Glaze admins\n\n"
+                "`/testdrop`\n"
+                "Force a daily or monthly glaze drop\n"
+                "(posts in the channel where run)"
+            ),
+            inline=False
+        )
+
+        admin_embed.add_field(
+            name="⚠️ Moderation",
+            value=(
+                "• Reported glazes appear in the report channel\n"
+                "• Mods can delete glazes & DM the sender\n"
+                "• Deleted glazes never appear again"
+            ),
+            inline=False
+        )
+
+        admin_embed.set_footer(text=FOOTER_TEXT)
+
+        await interaction.response.send_message(
+            embeds=[embed, admin_embed]
+        )
+        return
+
+    # --------------------
+    # Normal public help
+    # --------------------
+    await interaction.response.send_message(embed=embed)
 
 
 # =========================================================
