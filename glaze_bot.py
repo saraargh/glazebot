@@ -422,8 +422,11 @@ class DeleteScoldView(discord.ui.View):
         try:
             u = await bot.fetch_user(int(glaze["sender_id"]))
             await u.send(
-                "⚠️ Your glaze was reported and removed - Please remember to keep glazes kind and SFW."
-            )
+    "⚠️ **Your glaze was reported and removed**\n\n"
+    "🍯 **Reported glaze:**\n"
+    f"“{glaze['text']}”\n\n"
+    "Please remember to keep glazes kind and SFW."
+)
         except Exception:
             pass
 
