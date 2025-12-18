@@ -15,7 +15,8 @@
     "last_monthly_announce": {}
   },
   "cooldowns": {
-    "1238834298338152498": "2025-12-18T03:26:11.431092+00:00"
+    "1238834298338152498": "2025-12-18T03:26:11.431092+00:00",
+    "1450514816958599220": "2025-12-18T03:27:14.892341+00:00"
   },
   "glazes": [
     {
@@ -24,6 +25,17 @@
       "recipient_id": 1450514816958599220,
       "text": "test glaze yayyyyyyy ur soooooooo pretty and nice 💌💌💌",
       "created_at": "2025-12-18T03:26:11.431092+00:00",
+      "month_key": "2025-12",
+      "dropped_at": null,
+      "deleted": false,
+      "reported": false
+    },
+    {
+      "id": "f8b7c6b1-9f1e-4b94-9d2e-2a6b3a9f2d44",
+      "sender_id": 1450514816958599220,
+      "recipient_id": 1238834298338152498,
+      "text": "return glaze because you are genuinely iconic and make everything better 🥹🍯",
+      "created_at": "2025-12-18T03:27:14.892341+00:00",
       "month_key": "2025-12",
       "dropped_at": null,
       "deleted": false,
