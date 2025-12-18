@@ -1,0 +1,20 @@
+{
+  "config": {
+    "drop_channel_id": null,
+    "report_channel_id": null,
+    "admin_role_ids": [
+      1404104881098195015,
+      1413545658006110401,
+      1420817462290681936,
+      1404105470204969000,
+      1404098545006546954
+    ]
+  },
+  "meta": {
+    "last_daily_drop_date": null,
+    "last_monthly_announce": {}
+  },
+  "cooldowns": {},
+  "glazes": [],
+  "wins": {}
+}
