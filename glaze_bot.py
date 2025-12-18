@@ -630,11 +630,11 @@ async def report_glaze(interaction: discord.Interaction, glaze_id: str):
 # =========================================================
 # Commands
 # =========================================================
-@bot.tree.command(name="controlpanel", description="Configure Glaze channels and admin roles.")
+@bot.tree.command(name="controlpanel", description="Configure Glaze settings")
 @app_commands.describe(
-    drop_channel="Channel for daily drops + monthly results",
-    report_channel="Channel where reports go",
-    admin_roles="Roles allowed to delete & scold"
+    drop_channel="Channel for daily & monthly glazes",
+    report_channel="Channel for reported glazes",
+    admin_roles="Roles allowed to delete & scold glazes"
 )
 async def controlpanel(
     interaction: discord.Interaction,
@@ -642,29 +642,29 @@ async def controlpanel(
     report_channel: discord.TextChannel | None = None,
     admin_roles: list[discord.Role] | None = None
 ):
-    if not isinstance(interaction.user, discord.Member) or not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("🚫 Admins only.", ephemeral=True)
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("🚫 Admins only.")
         return
 
-    role_ids: List[int] = []
-    for part in admin_roles.split(","):
-        part = part.strip()
-        if part.isdigit():
-            role_ids.append(int(part))
+    data, sha = await load_data()
 
-    async def _mut(d: Dict[str, Any]):
-        d["config"]["drop_channel_id"] = drop_channel.id
-        d["config"]["report_channel_id"] = report_channel.id
-        d["config"]["admin_role_ids"] = role_ids
+    if drop_channel is not None:
+        data["config"]["drop_channel_id"] = drop_channel.id
 
-    await mutate_data(_mut, message="Update Glaze controlpanel config")
+    if report_channel is not None:
+        data["config"]["report_channel_id"] = report_channel.id
+
+    if admin_roles is not None:
+        data["config"]["admin_role_ids"] = [r.id for r in admin_roles]
+
+    await save_data(data, sha, message="Update Glaze controlpanel")
 
     await interaction.response.send_message(
-    f"🍯 **Glaze configuration updated**\n"
-    f"• Drop channel: {drop_channel.mention if drop_channel else 'unchanged'}\n"
-    f"• Report channel: {report_channel.mention if report_channel else 'unchanged'}\n"
-    f"• Admin roles: {', '.join(r.mention for r in admin_roles) if admin_roles else 'unchanged'}"
-)
+        f"🍯 **Glaze configuration updated**\n"
+        f"• Drop channel: {drop_channel.mention if drop_channel else 'unchanged'}\n"
+        f"• Report channel: {report_channel.mention if report_channel else 'unchanged'}\n"
+        f"• Admin roles: {', '.join(r.mention for r in admin_roles) if admin_roles else 'unchanged'}"
+    )
 
 @bot.tree.command(name="glaze", description="Send an anonymous glaze to someone (once every 24h).")
 @app_commands.describe(member="Who are you glazing?", message="Write something nice (keep it SFW!)")
