@@ -22,7 +22,8 @@
     "1213578451731357720": "2025-12-18T11:09:48.362868+00:00",
     "924686780408676392": "2025-12-18T11:11:39.999052+00:00",
     "1355886703767847064": "2025-12-18T11:12:50.682476+00:00",
-    "300738774332080128": "2025-12-18T14:12:31.683475+00:00"
+    "300738774332080128": "2025-12-18T14:12:31.683475+00:00",
+    "865401742274330674": "2025-12-18T18:14:41.646540+00:00"
   },
   "glazes": [
     {
@@ -97,6 +98,17 @@
       "recipient_id": 217015976300904465,
       "text": "I want you for breakfast lunch and dinner",
       "created_at": "2025-12-18T14:12:31.683475+00:00",
+      "month_key": "2025-12",
+      "dropped_at": null,
+      "deleted": false,
+      "reported": false
+    },
+    {
+      "id": "fbdcd5b8-cb27-4553-92a3-faea78044374",
+      "sender_id": 865401742274330674,
+      "recipient_id": 1238834298338152498,
+      "text": "I'm actually so happy that ive met you girl! I feel like i can tell you everything and you always are honest and trustworthy as well. You're basically like a older sister to me and I appreciate the bond we've made over this group \ud83e\ude77",
+      "created_at": "2025-12-18T18:14:41.646540+00:00",
       "month_key": "2025-12",
       "dropped_at": null,
       "deleted": false,
