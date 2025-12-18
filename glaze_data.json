@@ -1,7 +1,7 @@
 {
   "config": {
-    "drop_channel_id": null,
-    "report_channel_id": null,
+    "drop_channel_id": 1444274467864838207,
+    "report_channel_id": 1444274467864838207,
     "admin_role_ids": [
       1404104881098195015,
       1413545658006110401,
