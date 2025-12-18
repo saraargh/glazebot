@@ -402,7 +402,7 @@ class DeleteScoldView(discord.ui.View):
         super().__init__(timeout=None)
         self.glaze_id = glaze_id
 
-    @discord.ui.button(label="❌ Delete Glaze and Scold Glazer", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="💥 Delete Glaze and Scold Glazer", style=discord.ButtonStyle.danger)
     async def delete_scold(self, interaction: discord.Interaction, button: discord.ui.Button):
         data, sha = await load_data()
         admin_roles = data["config"].get("admin_role_ids", [])
@@ -826,6 +826,112 @@ async def glazeleaderboard_cmd(interaction: discord.Interaction):
     embed.set_footer(text=FOOTER_TEXT)
 
     await interaction.response.send_message(embed=embed)
+
+####TEST EMBEDS####
+
+@bot.tree.command(name="testdrop", description="Force a Glaze drop for testing (admin only)")
+@app_commands.describe(kind="Which drop to test")
+@app_commands.choices(
+    kind=[
+        app_commands.Choice(name="Daily Glaze", value="daily"),
+        app_commands.Choice(name="Monthly Glaze", value="monthly")
+    ]
+)
+async def testdrop(
+    interaction: discord.Interaction,
+    kind: app_commands.Choice[str]
+):
+    data, sha = await load_data()
+
+    # 🔒 Restrict to Glaze admin roles
+    admin_roles = data["config"].get("admin_role_ids", [])
+    if not is_admin(interaction, admin_roles):
+        await interaction.response.send_message(
+            "🚫 You don’t have permission to do that."
+        )
+        return
+
+    guild = await get_single_guild()
+    if not guild:
+        await interaction.response.send_message("⚠️ Server not ready.")
+        return
+
+    # 📍 Post WHERE the command is run
+    drop_channel = interaction.channel
+
+    # --------------------
+    # DAILY TEST DROP
+    # --------------------
+    if kind.value == "daily":
+        pending = [
+            g for g in data["glazes"]
+            if not g.get("deleted") and not g.get("dropped_at")
+        ]
+        pending.sort(key=lambda x: x.get("created_at", ""))
+
+        if not pending:
+            await interaction.response.send_message(
+                "🍯 No pending glazes to drop."
+            )
+            return
+
+        g = pending[0]
+        member = guild.get_member(int(g["recipient_id"]))
+
+        if member:
+            await drop_channel.send(
+                f"🍯 **(Test Drop)** A glaze has landed…\n{member.mention}"
+            )
+            await drop_channel.send(
+                embed=build_daily_embed(member.display_name, g["text"])
+            )
+        else:
+            await drop_channel.send(
+                "🍯 **(Test Drop)** A glaze landed, but the member is no longer here."
+            )
+
+        g["dropped_at"] = iso_utc(now_utc())
+        data["meta"]["last_daily_drop_date"] = now_london().strftime("%Y-%m-%d")
+        await save_data(data, sha, message="Test daily glaze drop")
+
+        await interaction.response.send_message(
+            "🍯 Daily test drop complete."
+        )
+
+    # --------------------
+    # MONTHLY TEST DROP
+    # --------------------
+    else:
+        month_key = now_utc().strftime("%Y-%m")
+        winner = compute_month_winner(data, month_key)
+
+        if not winner:
+            await interaction.response.send_message(
+                "🍯 No glazes available for this month."
+            )
+            return
+
+        winner_id, count = winner
+
+        await drop_channel.send(
+            "🍯🍯🍯 **(Test Drop)** MONTHLY GLAZE RESULTS 🍯🍯🍯\n@everyone"
+        )
+        await drop_channel.send(
+            embed=build_monthly_embed(
+                month_key,
+                f"<@{winner_id}>",
+                count
+            )
+        )
+
+        # Record so it doesn't double-fire accidentally
+        data["meta"]["last_monthly_announce"][month_key] = iso_utc(now_utc())
+        data["wins"][str(winner_id)] = int(data["wins"].get(str(winner_id), 0)) + 1
+        await save_data(data, sha, message="Test monthly glaze drop")
+
+        await interaction.response.send_message(
+            "🍯 Monthly test drop complete."
+        )
 
 # =========================================================
 # Monthly winner calculation (tie-break: who reached first)
