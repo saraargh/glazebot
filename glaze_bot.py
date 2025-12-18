@@ -634,36 +634,64 @@ async def report_glaze(interaction: discord.Interaction, glaze_id: str):
 @app_commands.describe(
     drop_channel="Channel for daily & monthly glazes",
     report_channel="Channel for reported glazes",
-    admin_roles="Roles allowed to delete & scold glazes"
+    admin_role="Add or remove an admin role (run multiple times)"
 )
 async def controlpanel(
     interaction: discord.Interaction,
     drop_channel: discord.TextChannel | None = None,
     report_channel: discord.TextChannel | None = None,
-    admin_roles: list[discord.Role] | None = None
+    admin_role: discord.Role | None = None
 ):
+    # Permission check (server admins only)
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("🚫 Admins only.")
         return
 
     data, sha = await load_data()
 
+    # Track what changed for the confirmation message
+    changes = []
+
+    # Update drop channel
     if drop_channel is not None:
         data["config"]["drop_channel_id"] = drop_channel.id
+        changes.append(f"• Drop channel → {drop_channel.mention}")
 
+    # Update report channel
     if report_channel is not None:
         data["config"]["report_channel_id"] = report_channel.id
+        changes.append(f"• Report channel → {report_channel.mention}")
 
-    if admin_roles is not None:
-        data["config"]["admin_role_ids"] = [r.id for r in admin_roles]
+    # Toggle admin role
+    if admin_role is not None:
+        role_ids = set(data["config"].get("admin_role_ids", []))
+
+        if admin_role.id in role_ids:
+            role_ids.remove(admin_role.id)
+            changes.append(f"• Admin role removed → {admin_role.mention}")
+        else:
+            role_ids.add(admin_role.id)
+            changes.append(f"• Admin role added → {admin_role.mention}")
+
+        data["config"]["admin_role_ids"] = list(role_ids)
+
+    # Save only if something actually changed
+    if not changes:
+        await interaction.response.send_message(
+            "🍯 Nothing changed — provide at least one option to update."
+        )
+        return
 
     await save_data(data, sha, message="Update Glaze controlpanel")
 
+    # Build current admin role list
+    current_roles = ", ".join(f"<@&{r}>" for r in data["config"]["admin_role_ids"]) or "None"
+
+    # Public confirmation
     await interaction.response.send_message(
-        f"🍯 **Glaze configuration updated**\n"
-        f"• Drop channel: {drop_channel.mention if drop_channel else 'unchanged'}\n"
-        f"• Report channel: {report_channel.mention if report_channel else 'unchanged'}\n"
-        f"• Admin roles: {', '.join(r.mention for r in admin_roles) if admin_roles else 'unchanged'}"
+        "🍯 **Glaze configuration updated**\n"
+        + "\n".join(changes)
+        + f"\n• Current admin roles: {current_roles}"
     )
 
 @bot.tree.command(name="glaze", description="Send an anonymous glaze to someone (once every 24h).")
