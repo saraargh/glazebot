@@ -36,7 +36,7 @@ threading.Thread(target=_run_flask, daemon=True).start()
 # Config
 # =========================================================
 TOKEN = os.getenv("TOKEN")
-GITHUB_REPO = os.getenv("GITHUB_REPO")          # e.g. "saraargh/glaze-bot"
+GITHUB_REPO = os.getenv("GITHUB_REPO")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_FILE = os.getenv("GLAZE_GITHUB_FILE", "glaze_data.json")
 
@@ -45,10 +45,10 @@ HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
 
 LONDON = ZoneInfo("Europe/London")
 
-DAILY_DROP_HOUR = 17     # 5pm UK time
+DAILY_DROP_HOUR = 17
 DAILY_DROP_MINUTE = 0
 
-MONTHLY_DROP_HOUR = 18   # 6pm UK time (last day of month)
+MONTHLY_DROP_HOUR = 18
 MONTHLY_DROP_MINUTE = 0
 
 DAILY_PING_PREFIX = "🍯 A glaze has landed…"
@@ -60,13 +60,10 @@ NOT_YOUR_MENU = "🍯 Hands off — this glaze menu isn’t yours!"
 
 MONTHLY_GIF_URL = (
     "https://cdn.discordapp.com/ephemeral-attachments/1450222619327729757/"
-    "1450977394948051015/IMG_5594.gif?ex=69447f80&is=69432e00&hm="
-    "9eefba9b1db8b9059e7450662eda07eeb718b852b1d5e5f1a9349c19c589e0b9&"
+    "1450977394948051015/IMG_5594.gif"
 )
 
-# Single-server: this bot will operate on the first guild it is in.
-# (If you want, you can hard-lock a specific guild ID via env later.)
-LOCK_GUILD_ID = int(os.getenv("GUILD_ID", "0"))  # optional; 0 means "first guild"
+LOCK_GUILD_ID = int(os.getenv("GUILD_ID", "0"))
 
 
 # =========================================================
@@ -89,9 +86,8 @@ class GlazeBot(discord.Client):
 
 bot = GlazeBot()
 
-
 # =========================================================
-# GitHub JSON store (with sha + lock)
+# GitHub JSON store (NO CACHING — JSON IS SOURCE OF TRUTH)
 # =========================================================
 DEFAULT_DATA: Dict[str, Any] = {
     "config": {
@@ -100,17 +96,13 @@ DEFAULT_DATA: Dict[str, Any] = {
         "admin_role_ids": []
     },
     "meta": {
-        "last_daily_drop_date": None,      # "YYYY-MM-DD" in London time
-        "last_monthly_announce": {}        # {"YYYY-MM": "iso_utc"}
+        "last_daily_drop_date": None,
+        "last_monthly_announce": {}
     },
-    "cooldowns": {},                        # {"user_id": "iso_utc"}
-    "glazes": [],                           # list of glazes
-    "wins": {}                              # {"user_id": int monthly wins}
+    "cooldowns": {},
+    "glazes": [],
+    "wins": {}
 }
-
-_store_lock = asyncio.Lock()
-_cached_sha: Optional[str] = None
-_cached_data: Optional[Dict[str, Any]] = None
 
 def _github_enabled() -> bool:
     return bool(GITHUB_REPO and GITHUB_TOKEN)
@@ -122,82 +114,60 @@ def _merge_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
             merged[k].update(v)
         else:
             merged[k] = v
-    merged.setdefault("config", DEFAULT_DATA["config"].copy())
-    merged.setdefault("meta", DEFAULT_DATA["meta"].copy())
-    merged.setdefault("cooldowns", {})
-    merged.setdefault("glazes", [])
-    merged.setdefault("wins", {})
-    merged["meta"].setdefault("last_daily_drop_date", None)
-    merged["meta"].setdefault("last_monthly_announce", {})
-    merged["config"].setdefault("drop_channel_id", None)
-    merged["config"].setdefault("report_channel_id", None)
-    merged["config"].setdefault("admin_role_ids", [])
     return merged
 
 async def load_data() -> Tuple[Dict[str, Any], Optional[str]]:
-    global _cached_data, _cached_sha
+    if not _github_enabled():
+        return json.loads(json.dumps(DEFAULT_DATA)), None
 
-    async with _store_lock:
-        if _cached_data is not None:
-            return _cached_data, _cached_sha
+    url = f"{API_BASE}/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
+    r = await asyncio.to_thread(requests.get, url, headers=HEADERS, timeout=20)
 
-        if not _github_enabled():
-            _cached_data = json.loads(json.dumps(DEFAULT_DATA))
-            _cached_sha = None
-            return _cached_data, _cached_sha
+    if r.status_code == 200:
+        payload = r.json()
+        sha = payload.get("sha")
+        raw = base64.b64decode(payload["content"]).decode("utf-8")
+        data = _merge_defaults(json.loads(raw))
+        return data, sha
 
-        url = f"{API_BASE}/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
-        r = await asyncio.to_thread(requests.get, url, headers=HEADERS, timeout=20)
+    if r.status_code == 404:
+        data = json.loads(json.dumps(DEFAULT_DATA))
+        await save_data(data, None, message="Create glaze_data.json")
+        return data, None
 
-        if r.status_code == 200:
-            payload = r.json()
-            _cached_sha = payload.get("sha")
-            raw = base64.b64decode(payload.get("content", "")).decode("utf-8")
-            _cached_data = _merge_defaults(json.loads(raw))
-            return _cached_data, _cached_sha
+    raise RuntimeError(f"GitHub load failed: {r.status_code} {r.text}")
 
-        if r.status_code == 404:
-            _cached_data = json.loads(json.dumps(DEFAULT_DATA))
-            _cached_sha = None
-            await save_data(_cached_data, _cached_sha, message="Create glaze_data.json")
-            return _cached_data, _cached_sha
+async def save_data(
+    data: Dict[str, Any],
+    sha: Optional[str],
+    message: str = "Update glaze data"
+) -> None:
+    if not _github_enabled():
+        return
 
-        raise RuntimeError(f"GitHub load failed: {r.status_code} {r.text}")
+    url = f"{API_BASE}/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
 
-async def save_data(data: Dict[str, Any], sha: Optional[str], message: str = "Update glaze data") -> None:
-    global _cached_data, _cached_sha
+    content = base64.b64encode(
+        json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
+    ).decode("utf-8")
 
-    async with _store_lock:
-        if not _github_enabled():
-            _cached_data = data
-            _cached_sha = sha
-            return
+    payload = {
+        "message": message,
+        "content": content
+    }
+    if sha:
+        payload["sha"] = sha
 
-        url = f"{API_BASE}/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
+    r = await asyncio.to_thread(
+        requests.put,
+        url,
+        headers=HEADERS,
+        json=payload,
+        timeout=20
+    )
 
-        content = json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
-        payload = {
-            "message": message,
-            "content": base64.b64encode(content).decode("utf-8"),
-        }
-        if sha:
-            payload["sha"] = sha
-
-        r = await asyncio.to_thread(requests.put, url, headers=HEADERS, json=payload, timeout=20)
-        if r.status_code in (200, 201):
-            j = r.json()
-            new_sha = (j.get("content") or {}).get("sha") or j.get("sha") or sha
-            _cached_data = data
-            _cached_sha = new_sha
-            return
-
+    if r.status_code not in (200, 201):
         raise RuntimeError(f"GitHub save failed: {r.status_code} {r.text}")
-
-async def mutate_data(mutator, message: str) -> Any:
-    data, sha = await load_data()
-    result = mutator(data)
-    await save_data(data, sha, message=message)
-    return result
 
 
 # =========================================================
