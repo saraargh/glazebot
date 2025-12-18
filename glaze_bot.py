@@ -310,21 +310,33 @@ class ThanksModal(discord.ui.Modal, title="Say Thanks! 💐"):
         style=discord.TextStyle.paragraph
     )
 
-    def __init__(self, sender_id: int):
+    def __init__(self, sender_id: int, glaze_text: str):
         super().__init__()
         self.sender_id = sender_id
+        self.glaze_text = glaze_text
 
     async def on_submit(self, interaction: discord.Interaction):
         thank_text = (self.message.value or "").strip()
+
         try:
             u = await bot.fetch_user(self.sender_id)
+
+            dm = (
+                "💐 Someone wants to thank you for your glaze!\n\n"
+                f"🍯 **Your glaze:**\n“{self.glaze_text}”\n\n"
+            )
+
             if thank_text:
-                await u.send(f"💐 Someone wants to thank you for your glaze!\n\n“{thank_text}”")
-            else:
-                await u.send("💐 Someone appreciated your glaze! 💐")
+                dm += f"💬 **Their message:**\n“{thank_text}”"
+
+            await u.send(dm)
         except Exception:
             pass
-        await interaction.response.send_message("💐 Thanks sent! (Anonymously.)", ephemeral=True)
+
+        await interaction.response.send_message(
+            "💐 Thanks sent!",
+            ephemeral=True
+        )
 
 
 # =========================================================
