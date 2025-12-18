@@ -39,7 +39,7 @@
       "month_key": "2025-12",
       "dropped_at": null,
       "deleted": false,
-      "reported": false
+      "reported": true
     }
   ],
   "wins": {}
