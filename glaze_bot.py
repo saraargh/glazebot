@@ -638,9 +638,9 @@ async def report_glaze(interaction: discord.Interaction, glaze_id: str):
 )
 async def controlpanel(
     interaction: discord.Interaction,
-    drop_channel: discord.TextChannel,
-    report_channel: discord.TextChannel,
-    admin_roles: str
+    drop_channel: discord.TextChannel | None = None,
+    report_channel: discord.TextChannel | None = None,
+    admin_roles: list[discord.Role] | None = None
 ):
     if not isinstance(interaction.user, discord.Member) or not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("🚫 Admins only.", ephemeral=True)
