@@ -634,7 +634,7 @@ async def report_glaze(interaction: discord.Interaction, glaze_id: str):
 @app_commands.describe(
     drop_channel="Channel for daily drops + monthly results",
     report_channel="Channel where reports go",
-    admin_roles="Comma-separated ROLE IDs allowed to delete & scold"
+    admin_roles="Roles allowed to delete & scold"
 )
 async def controlpanel(
     interaction: discord.Interaction,
