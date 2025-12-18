@@ -660,12 +660,11 @@ async def controlpanel(
     await mutate_data(_mut, message="Update Glaze controlpanel config")
 
     await interaction.response.send_message(
-        "✅ Glaze configured.\n"
-        f"• Drop channel: {drop_channel.mention}\n"
-        f"• Report channel: {report_channel.mention}\n"
-        f"• Admin roles: {', '.join(map(str, role_ids)) or 'None'}",
-        ephemeral=True
-    )
+    f"🍯 **Glaze configuration updated**\n"
+    f"• Drop channel: {drop_channel.mention if drop_channel else 'unchanged'}\n"
+    f"• Report channel: {report_channel.mention if report_channel else 'unchanged'}\n"
+    f"• Admin roles: {', '.join(r.mention for r in admin_roles) if admin_roles else 'unchanged'}"
+)
 
 @bot.tree.command(name="glaze", description="Send an anonymous glaze to someone (once every 24h).")
 @app_commands.describe(member="Who are you glazing?", message="Write something nice (keep it SFW!)")
