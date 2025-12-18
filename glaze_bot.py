@@ -1,7 +1,3 @@
-# =========================
-# GLAZE BOT — PART 1 OF 2
-# =========================
-
 from __future__ import annotations
 
 import os
