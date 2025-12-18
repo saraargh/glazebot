@@ -422,8 +422,7 @@ class DeleteScoldView(discord.ui.View):
         try:
             u = await bot.fetch_user(int(glaze["sender_id"]))
             await u.send(
-                "⚠️ Your glaze was reported and removed.\n"
-                "Please remember to keep glazes kind and SFW."
+                "⚠️ Your glaze was reported and removed - "Please remember to keep glazes kind and SFW."
             )
         except Exception:
             pass
@@ -494,7 +493,12 @@ class MyGlazesView(discord.ui.View):
         if not g:
             await interaction.response.send_message("😔 That glaze is no longer available.", ephemeral=True)
             return
-        await interaction.response.send_modal(ThanksModal(sender_id=int(g["sender_id"])))
+        await interaction.response.send_modal(
+    ThanksModal(
+        sender_id=int(g["sender_id"]),
+        glaze_text=g["text"]
+    )
+)
 
     @discord.ui.button(label="Report ⚠️", style=discord.ButtonStyle.secondary)
     async def report_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -764,21 +768,64 @@ async def myglaze_cmd(interaction: discord.Interaction):
 
     await interaction.response.send_message("🍯 Your glaze menu:", view=MyGlazeHubView(owner_id=interaction.user.id), ephemeral=True)
 
-@bot.tree.command(name="glazeleaderboard", description="Leaderboard of monthly MOST GLAZED wins.")
+@bot.tree.command(name="glazeleaderboard", description="Monthly winners + top glazers")
 async def glazeleaderboard_cmd(interaction: discord.Interaction):
     data, _ = await load_data()
+
+    # ---------- Monthly winners ----------
     wins = data.get("wins", {})
-    if not wins:
-        await interaction.response.send_message("🍯 No monthly winners yet.", ephemeral=True)
-        return
+    if wins:
+        sorted_wins = sorted(
+            ((int(uid), cnt) for uid, cnt in wins.items()),
+            key=lambda x: x[1],
+            reverse=True
+        )[:5]
 
-    items = sorted(((int(uid), int(cnt)) for uid, cnt in wins.items()), key=lambda x: x[1], reverse=True)[:10]
-    lines = [f"**{i}.** <@{uid}> — **{cnt}** win(s)" for i, (uid, cnt) in enumerate(items, start=1)]
+        monthly_lines = [
+            f"**{i}.** <@{uid}> — **{cnt}** win(s)"
+            for i, (uid, cnt) in enumerate(sorted_wins, start=1)
+        ]
+    else:
+        monthly_lines = ["No monthly winners yet 🍯"]
 
-    e = discord.Embed(title="🏆 Glaze Leaderboard (Monthly Wins)", description="\n".join(lines))
-    e.set_footer(text=FOOTER_TEXT)
-    await interaction.response.send_message(embed=e, ephemeral=True)
+    # ---------- Top glaze senders ----------
+    sender_counts = {}
+    for g in data.get("glazes", []):
+        if not g.get("deleted"):
+            sender_counts[g["sender_id"]] = sender_counts.get(g["sender_id"], 0) + 1
 
+    if sender_counts:
+        sorted_senders = sorted(
+            sender_counts.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:5]
+
+        sender_lines = [
+            f"**{i}.** <@{uid}> — **{cnt}** glazes sent"
+            for i, (uid, cnt) in enumerate(sorted_senders, start=1)
+        ]
+    else:
+        sender_lines = ["No glazes sent yet 🍯"]
+
+    # ---------- Embed ----------
+    embed = discord.Embed(title="🍯 Glaze Leaderboard")
+
+    embed.add_field(
+        name="🏆 Most Glazed (Monthly Wins)",
+        value="\n".join(monthly_lines),
+        inline=False
+    )
+
+    embed.add_field(
+        name="🍯 Top Glazers (Most Sent)",
+        value="\n".join(sender_lines),
+        inline=False
+    )
+
+    embed.set_footer(text=FOOTER_TEXT)
+
+    await interaction.response.send_message(embed=embed)
 
 # =========================================================
 # Monthly winner calculation (tie-break: who reached first)
