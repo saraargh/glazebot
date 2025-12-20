@@ -11,7 +11,7 @@
     ]
   },
   "meta": {
-    "last_daily_drop_date": "2025-12-18",
+    "last_daily_drop_date": "2025-12-20",
     "last_monthly_announce": {}
   },
   "cooldowns": {
@@ -34,7 +34,7 @@
       "text": "you\u2019re just like sooooooooooo nice and pretty \ud83e\udd29",
       "created_at": "2025-12-18T09:32:38.677194+00:00",
       "month_key": "2025-12",
-      "dropped_at": null,
+      "dropped_at": "2025-12-20T17:00:59.152484+00:00",
       "deleted": false,
       "reported": false
     },
