@@ -23,7 +23,8 @@
     "924686780408676392": "2025-12-18T11:11:39.999052+00:00",
     "1355886703767847064": "2025-12-18T11:12:50.682476+00:00",
     "300738774332080128": "2025-12-19T17:45:26.439838+00:00",
-    "865401742274330674": "2025-12-18T18:14:41.646540+00:00"
+    "865401742274330674": "2025-12-18T18:14:41.646540+00:00",
+    "847045429086126082": "2025-12-20T03:27:47.581694+00:00"
   },
   "glazes": [
     {
@@ -142,6 +143,17 @@
       "recipient_id": 1258358477903102024,
       "text": "messing w you is way too fun and banter never feels forced with you either. It\u2019s nice knowing how levelled we are with one another and it\u2019s nice :))",
       "created_at": "2025-12-20T00:32:06.178723+00:00",
+      "month_key": "2025-12",
+      "dropped_at": null,
+      "deleted": false,
+      "reported": false
+    },
+    {
+      "id": "55c86a8b-b255-43ac-a13b-8e30083fcb4e",
+      "sender_id": 847045429086126082,
+      "recipient_id": 217015976300904465,
+      "text": "Greg is my favourite mod he's so handsome and charismatic. He deserves a promotion.",
+      "created_at": "2025-12-20T03:27:47.581694+00:00",
       "month_key": "2025-12",
       "dropped_at": null,
       "deleted": false,
