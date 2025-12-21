@@ -27,7 +27,8 @@
     "847045429086126082": "2025-12-20T03:27:47.581694+00:00",
     "1248020591823425626": "2025-12-20T21:02:27.392067+00:00",
     "460480780460752907": "2025-12-21T17:22:55.665636+00:00",
-    "154278268755771393": "2025-12-21T17:23:00.495609+00:00"
+    "154278268755771393": "2025-12-21T17:23:00.495609+00:00",
+    "581896881555374081": "2025-12-21T18:27:28.301363+00:00"
   },
   "glazes": [
     {
@@ -245,6 +246,17 @@
       "recipient_id": 1248020591823425626,
       "text": "you\u2019re so funny and I hope you never go bald \ud83d\ude4f I wish I saw you more often but I understand our schedules are so different :)))",
       "created_at": "2025-12-21T18:27:00.349298+00:00",
+      "month_key": "2025-12",
+      "dropped_at": null,
+      "deleted": false,
+      "reported": false
+    },
+    {
+      "id": "7f86478d-7976-44d6-a1dd-e9ae3eaefae4",
+      "sender_id": 581896881555374081,
+      "recipient_id": 300738774332080128,
+      "text": "Just seems like a sound guy",
+      "created_at": "2025-12-21T18:27:28.301363+00:00",
       "month_key": "2025-12",
       "dropped_at": null,
       "deleted": false,
