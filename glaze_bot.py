@@ -6,8 +6,9 @@ import uuid
 import base64
 import threading
 import asyncio
+import random
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
 import discord
@@ -45,8 +46,9 @@ HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
 
 LONDON = ZoneInfo("Europe/London")
 
-DAILY_DROP_HOUR = 17
-DAILY_DROP_MINUTE = 0
+# Defaults (can be overridden by /controlpanel settings)
+DEFAULT_DAILY_DROP_HOUR = 17
+DEFAULT_DAILY_DROP_MINUTE = 0
 
 MONTHLY_DROP_HOUR = 18
 MONTHLY_DROP_MINUTE = 0
@@ -55,6 +57,8 @@ DAILY_PING_PREFIX = "🍯 A glaze has landed…"
 MONTHLY_PING_PREFIX = "🍯 MONTHLY GLAZE RESULTS..."
 
 FOOTER_TEXT = "Use /glaze to submit an anonymous glaze — remember to keep it SFW! ⚠️"
+DROP_FOOTER_TEXT = "Use /myglaze to view all your glazes or say thank you — sender stays anonymous 🍯"
+
 SELF_GLAZE_ROAST = "🚫🚫 {user} only ugly people glaze themselves — try being nice to someone else!"
 NOT_YOUR_MENU = "🍯 Hands off — this glaze menu isn’t yours!"
 
@@ -87,11 +91,16 @@ bot = GlazeBot()
 # =========================================================
 # GitHub JSON Store
 # =========================================================
-DEFAULT_DATA = {
+DEFAULT_DATA: Dict[str, Any] = {
     "config": {
         "drop_channel_id": None,
         "report_channel_id": None,
-        "admin_role_ids": []
+        "admin_role_ids": [],
+        # NEW:
+        # daily_drop_limit can be an int OR the literal string "all"
+        "daily_drop_limit": 1,
+        "daily_drop_hour": DEFAULT_DAILY_DROP_HOUR,
+        "daily_drop_minute": DEFAULT_DAILY_DROP_MINUTE,
     },
     "meta": {
         "last_daily_drop_date": None,
@@ -197,6 +206,37 @@ def month_key(dt):
     return dt.strftime("%Y-%m")
 
 
+def _get_daily_drop_settings(data: Dict[str, Any]) -> Tuple[int, int, Union[int, str]]:
+    cfg = data.get("config", {})
+    hour = int(cfg.get("daily_drop_hour", DEFAULT_DAILY_DROP_HOUR) or DEFAULT_DAILY_DROP_HOUR)
+    minute = int(cfg.get("daily_drop_minute", DEFAULT_DAILY_DROP_MINUTE) or DEFAULT_DAILY_DROP_MINUTE)
+    limit = cfg.get("daily_drop_limit", 1)
+
+    # Normalise limit
+    if isinstance(limit, str):
+        limit = limit.strip().lower()
+        if limit != "all":
+            # try cast
+            try:
+                limit = int(limit)
+            except Exception:
+                limit = 1
+    elif isinstance(limit, (int, float)):
+        limit = int(limit)
+    else:
+        limit = 1
+
+    # clamp hour/minute
+    hour = max(0, min(23, hour))
+    minute = max(0, min(59, minute))
+
+    if limit != "all":
+        if limit < 1:
+            limit = 1
+
+    return hour, minute, limit
+
+
 # =========================================================
 # Embed styling
 # =========================================================
@@ -212,7 +252,7 @@ def build_daily_embed(recipient_display: str, text: str) -> discord.Embed:
         description=f"Today’s glaze is for **{recipient_display}**\n\n*“{text}”*",
         color=GLAZE_YELLOW
     )
-    e.set_footer(text=FOOTER_TEXT)
+    e.set_footer(text=DROP_FOOTER_TEXT)
     return e
 
 
@@ -233,7 +273,7 @@ def build_monthly_embed(month_key_str: str, winner_mention: str, count: int) -> 
     if MONTHLY_GIF_URL:
         e.set_image(url=MONTHLY_GIF_URL)
 
-    e.set_footer(text=FOOTER_TEXT)
+    e.set_footer(text=DROP_FOOTER_TEXT)
     return e
 
 
@@ -650,20 +690,27 @@ async def report_glaze(interaction: discord.Interaction, glaze_id: str):
 @app_commands.describe(
     drop_channel="Channel for daily & monthly glazes",
     report_channel="Channel for reported glazes",
-    admin_role="Add or remove an admin role (run multiple times)"
+    admin_role="Add or remove an admin role (run multiple times)",
+    daily_drop_limit='Daily drop limit: number (e.g. "3") or the literal string "all"',
+    daily_drop_hour="Daily drop hour (0-23) London time",
+    daily_drop_minute="Daily drop minute (0-59) London time",
 )
 async def controlpanel(
     interaction: discord.Interaction,
     drop_channel: discord.TextChannel | None = None,
     report_channel: discord.TextChannel | None = None,
-    admin_role: discord.Role | None = None
+    admin_role: discord.Role | None = None,
+    daily_drop_limit: str | None = None,
+    daily_drop_hour: int | None = None,
+    daily_drop_minute: int | None = None,
 ):
+    # MUST be non-ephemeral (interfering admins)
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("🚫 Admins only.")
         return
 
     data, sha = await load_data()
-    changes = []
+    changes: List[str] = []
 
     if drop_channel is not None:
         data["config"]["drop_channel_id"] = drop_channel.id
@@ -683,19 +730,57 @@ async def controlpanel(
             changes.append(f"• Admin role added → {admin_role.mention}")
         data["config"]["admin_role_ids"] = list(role_ids)
 
+    if daily_drop_limit is not None:
+        val = daily_drop_limit.strip().lower()
+        if val == "all":
+            data["config"]["daily_drop_limit"] = "all"
+            changes.append('• Daily drop limit → "all" (drops all undropped glazes)')
+        else:
+            try:
+                n = int(val)
+                if n < 1:
+                    raise ValueError()
+                data["config"]["daily_drop_limit"] = n
+                changes.append(f"• Daily drop limit → {n}")
+            except Exception:
+                await interaction.response.send_message('🍯 Invalid daily_drop_limit. Use a number like "3" or the literal string "all".')
+                return
+
+    if daily_drop_hour is not None:
+        h = max(0, min(23, int(daily_drop_hour)))
+        data["config"]["daily_drop_hour"] = h
+        changes.append(f"• Daily drop hour → {h:02d} (London)")
+
+    if daily_drop_minute is not None:
+        m = max(0, min(59, int(daily_drop_minute)))
+        data["config"]["daily_drop_minute"] = m
+        changes.append(f"• Daily drop minute → {m:02d} (London)")
+
     if not changes:
         await interaction.response.send_message("🍯 Nothing changed — provide at least one option to update.")
         return
 
     await save_data(data, sha, message="Update Glaze controlpanel")
+
+    hour, minute, limit = _get_daily_drop_settings(data)
     current_roles = ", ".join(f"<@&{r}>" for r in data["config"]["admin_role_ids"]) or "None"
+    limit_str = "all" if limit == "all" else str(limit)
+
     await interaction.response.send_message(
         "🍯 **Glaze configuration updated**\n"
         + "\n".join(changes)
-        + f"\n• Current admin roles: {current_roles}"
+        + f"\n\n**Current settings:**"
+        + f"\n• Admin roles: {current_roles}"
+        + f"\n• Daily drop time: {hour:02d}:{minute:02d} (London)"
+        + f"\n• Daily drop limit: {limit_str}"
+        + "\n\n**Daily drop limit rules:**"
+        + "\n• `1` → drops 1 glaze"
+        + "\n• `N` → drops N glazes"
+        + '\n• `"all"` → drops **all undropped glazes**'
     )
 
-@bot.tree.command(name="glaze", description="Send an anonymous glaze to someone (once every 12h.")
+
+@bot.tree.command(name="glaze", description="Send an anonymous glaze to someone (once every 12h).")
 @app_commands.describe(member="Who are you glazing?", message="Write something nice (keep it SFW!)")
 async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, message: str):
     guild = await get_single_guild()
@@ -716,7 +801,6 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
         return
 
     # IMPORTANT: always read latest JSON, not stale cache
-    # (invalidate cache first so manual JSON edits take effect immediately)
     global _cached_data, _cached_sha
     _cached_data = None
     _cached_sha = None
@@ -751,6 +835,7 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
 
     await interaction.response.send_message("✅ Your glaze has been submitted! 🍯", ephemeral=True)
 
+
 @bot.tree.command(name="myglaze", description="See your glazes (buttons + DM option).")
 async def myglaze_cmd(interaction: discord.Interaction):
     data, _ = await load_data()
@@ -759,6 +844,7 @@ async def myglaze_cmd(interaction: discord.Interaction):
         await interaction.response.send_message("😔 You don’t have any glazes yet… but your time will come 🍯", ephemeral=True)
         return
     await interaction.response.send_message("🍯 Your glaze menu:", view=MyGlazeHubView(owner_id=interaction.user.id), ephemeral=True)
+
 
 @bot.tree.command(name="glazeleaderboard", description="Monthly winners + top glazers")
 async def glazeleaderboard_cmd(interaction: discord.Interaction):
@@ -790,70 +876,47 @@ async def glazeleaderboard_cmd(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-@bot.tree.command(name="randomdrop", description="Force a Glaze drop for testing (admin only)")
-@app_commands.describe(kind="Manually drop a glaze")
-@app_commands.choices(
-    kind=[
-        app_commands.Choice(name="Daily Glaze", value="daily")
-    ]
-)
-async def testdrop(interaction: discord.Interaction, kind: app_commands.Choice[str]):
-    data, sha = await load_data()
 
+@bot.tree.command(name="randomdrop", description="Drop one random pending glaze right now (Glaze admins only).")
+async def randomdrop_cmd(interaction: discord.Interaction):
+    data, sha = await load_data()
     admin_roles = data["config"].get("admin_role_ids", [])
+
     if not is_admin(interaction, admin_roles):
-        await interaction.response.send_message("🚫 You don’t have permission to do that.")
+        await interaction.response.send_message("🚫 You don’t have permission to do that.", ephemeral=True)
         return
 
     guild = await get_single_guild()
     if not guild:
-        await interaction.response.send_message("⚠️ Server not ready.")
+        await interaction.response.send_message("⚠️ Server not ready.", ephemeral=True)
         return
 
-    drop_channel = interaction.channel
-    if not isinstance(drop_channel, discord.TextChannel):
-        await interaction.response.send_message("⚠️ Run this in a text channel.")
+    drop_ch = await get_drop_channel(guild)
+    if not drop_ch:
+        await interaction.response.send_message("⚠️ Drop channel isn’t set. Ask an admin to run /controlpanel.", ephemeral=True)
         return
 
-    if kind.value == "daily":
-        pending = [g for g in data["glazes"] if not g.get("deleted") and not g.get("dropped_at")]
-        pending.sort(key=lambda x: x.get("created_at", ""))
+    pending = [g for g in data["glazes"] if not g.get("deleted") and not g.get("dropped_at")]
+    if not pending:
+        await interaction.response.send_message("🍯 No pending glazes to drop.", ephemeral=True)
+        return
 
-        if not pending:
-            await interaction.response.send_message("🍯 No pending glazes to drop.")
-            return
+    g = random.choice(pending)
+    recipient = guild.get_member(int(g["recipient_id"]))
 
-        g = pending[0]
-        member = guild.get_member(int(g["recipient_id"]))
-
-        if member:
-            await drop_channel.send(f"🍯 **(Test Drop)** A glaze has landed…\n{member.mention}")
-            await drop_channel.send(embed=build_daily_embed(member.display_name, g["text"]))
-        else:
-            await drop_channel.send("🍯 **(Test Drop)** A glaze landed, but the member is no longer here.")
-
-        g["dropped_at"] = iso_utc(now_utc())
-        data["meta"]["last_daily_drop_date"] = datetime.now(tz=LONDON).strftime("%Y-%m-%d")
-        await save_data(data, sha, message="Test daily glaze drop")
-
-        await interaction.response.send_message("🍯 Daily test drop complete.")
-
+    # post publicly
+    if recipient:
+        await drop_ch.send(f"{DAILY_PING_PREFIX}\n{recipient.mention}")
+        await drop_ch.send(embed=build_daily_embed(recipient.display_name, g["text"]))
     else:
-        mk = datetime.now(timezone.utc).strftime("%Y-%m")
-        winner = compute_month_winner(data, mk)
-        if not winner:
-            await interaction.response.send_message("🍯 No glazes available for this month.")
-            return
+        await drop_ch.send(f"{DAILY_PING_PREFIX}\n<@{int(g['recipient_id'])}>")
+        await drop_ch.send(embed=build_daily_embed("Someone", g["text"]))
 
-        winner_id, count = winner
-        await drop_channel.send("🍯🍯🍯 **(Test Drop)** MONTHLY GLAZE RESULTS 🍯🍯🍯\n@everyone")
-        await drop_channel.send(embed=build_monthly_embed(mk, f"<@{winner_id}>", count))
+    # mark as dropped (REAL drop) — but DO NOT touch last_daily_drop_date
+    g["dropped_at"] = iso_utc(now_utc())
+    await save_data(data, sha, message="Random glaze drop (admin)")
 
-        data["meta"]["last_monthly_announce"][mk] = iso_utc(now_utc())
-        data["wins"][str(winner_id)] = int(data["wins"].get(str(winner_id), 0)) + 1
-        await save_data(data, sha, message="Test monthly glaze drop")
-
-        await interaction.response.send_message("🍯 Monthly test drop complete.")
+    await interaction.response.send_message("🍯 Random glaze dropped.", ephemeral=True)
 
 
 # =========================================================
@@ -888,26 +951,22 @@ def compute_month_winner(data: Dict[str, Any], month_key_str: str) -> Optional[T
 
     tied.sort(key=lambda rid: nth_time.get(rid, "9999-99-99"))
     return tied[0], best
-    
-    
-##### help command######
 
+
+##### help command ######
 @bot.tree.command(name="help", description="How Glaze works 🍯")
 @app_commands.describe(admin="Show admin-only help (Glaze admins only)")
-async def help_cmd(
-    interaction: discord.Interaction,
-    admin: bool | None = False
-):
+async def help_cmd(interaction: discord.Interaction, admin: bool | None = False):
     data, _ = await load_data()
+    hour, minute, limit = _get_daily_drop_settings(data)
+    limit_str = "all" if limit == "all" else str(limit)
 
-    # --------------------
-    # Public help embed
-    # --------------------
     embed = discord.Embed(
         title="🍯 Glaze Help",
         description=(
             "**Glaze lets you send anonymous kindness to other members.**\n\n"
-            "One glaze per day, dropped publicly — sweet messages only 💛"
+            f"Daily drops happen at **{hour:02d}:{minute:02d} London time**.\n"
+            f"Daily drop limit is currently **{limit_str}**."
         ),
         color=GLAZE_YELLOW
     )
@@ -939,26 +998,22 @@ async def help_cmd(
     embed.add_field(
         name="🍯 Drops",
         value=(
-            "• **Daily Drop** — one pending glaze is shared each day\n"
-            "• **Monthly Drop** — most glazed member wins 🎉\n"
-            "• Ties are broken fairly"
+            "• Daily Drop posts glazes publicly with a ping + embed\n"
+            "• Monthly Drop announces the most glazed member 🎉\n\n"
+            "**Daily drop limit rules:**\n"
+            "• `1` → drops 1 glaze\n"
+            "• `N` → drops N glazes\n"
+            "• `\"all\"` → drops **all undropped glazes**"
         ),
         inline=False
     )
 
     embed.set_footer(text=FOOTER_TEXT)
 
-    # --------------------
-    # Admin section (hidden)
-    # --------------------
     if admin:
         admin_roles = data["config"].get("admin_role_ids", [])
-
         if not is_admin(interaction, admin_roles):
-            await interaction.response.send_message(
-                "🍯 That section is for Glaze admins only.",
-                ephemeral=True
-            )
+            await interaction.response.send_message("🍯 That section is for Glaze admins only.", ephemeral=True)
             return
 
         admin_embed = discord.Embed(
@@ -971,10 +1026,11 @@ async def help_cmd(
             name="🛠️ Admin Commands",
             value=(
                 "`/controlpanel`\n"
-                "Set drop channel, report channel & Glaze admins\n\n"
-                "`/testdrop`\n"
-                "Force a daily or monthly glaze drop\n"
-                "(posts in the channel where run)"
+                "Set drop channel, report channel, Glaze admins, daily drop limit & daily drop time\n\n"
+                "`/randomdrop`\n"
+                "Drops **one random pending glaze** right now (real drop)\n"
+                "✅ Marks it as dropped\n"
+                "❌ Does not affect the 5pm daily-drop tracker"
             ),
             inline=False
         )
@@ -990,15 +1046,9 @@ async def help_cmd(
         )
 
         admin_embed.set_footer(text=FOOTER_TEXT)
-
-        await interaction.response.send_message(
-            embeds=[embed, admin_embed]
-        )
+        await interaction.response.send_message(embeds=[embed, admin_embed])
         return
 
-    # --------------------
-    # Normal public help
-    # --------------------
     await interaction.response.send_message(embed=embed)
 
 
@@ -1008,6 +1058,17 @@ async def help_cmd(
 def is_last_day_of_month_london(dt: datetime) -> bool:
     tomorrow = (dt + timedelta(days=1)).date()
     return tomorrow.day == 1
+
+
+async def _drop_one_glaze(drop_ch: discord.TextChannel, guild: discord.Guild, glaze: Dict[str, Any]) -> None:
+    recipient = guild.get_member(int(glaze["recipient_id"]))
+    if recipient:
+        await drop_ch.send(f"{DAILY_PING_PREFIX}\n{recipient.mention}")
+        await drop_ch.send(embed=build_daily_embed(recipient.display_name, glaze["text"]))
+    else:
+        await drop_ch.send(f"{DAILY_PING_PREFIX}\n<@{int(glaze['recipient_id'])}>")
+        await drop_ch.send(embed=build_daily_embed("Someone", glaze["text"]))
+
 
 @tasks.loop(minutes=1)
 async def glaze_scheduler():
@@ -1028,20 +1089,25 @@ async def glaze_scheduler():
         now_ldn = datetime.now(tz=LONDON)
         today_str = now_ldn.strftime("%Y-%m-%d")
 
-        # daily drop
-        if now_ldn.hour == DAILY_DROP_HOUR and now_ldn.minute == DAILY_DROP_MINUTE:
+        # daily drop (uses controlpanel settings)
+        hour, minute, limit = _get_daily_drop_settings(data)
+
+        if now_ldn.hour == hour and now_ldn.minute == minute:
             if data["meta"].get("last_daily_drop_date") != today_str:
                 pending = [g for g in data["glazes"] if not g.get("deleted") and not g.get("dropped_at")]
-                pending.sort(key=lambda x: x.get("created_at", ""))
+                pending.sort(key=lambda x: x.get("created_at", ""))  # oldest first
 
                 if pending:
-                    g = pending[0]
-                    recipient = guild.get_member(int(g["recipient_id"]))
-                    if recipient:
-                        await drop_ch.send(f"{DAILY_PING_PREFIX}\n{recipient.mention}")
-                        await drop_ch.send(embed=build_daily_embed(recipient.display_name, g["text"]))
-                    g["dropped_at"] = iso_utc(now_utc())
+                    if limit == "all":
+                        to_drop = pending[:]  # ALL undropped glazes
+                    else:
+                        to_drop = pending[: min(int(limit), len(pending))]
 
+                    for g in to_drop:
+                        await _drop_one_glaze(drop_ch, guild, g)
+                        g["dropped_at"] = iso_utc(now_utc())
+
+                # mark today's daily drop as done (ONLY the scheduler does this)
                 data["meta"]["last_daily_drop_date"] = today_str
                 await save_data(data, sha, message="Daily glaze drop")
 
