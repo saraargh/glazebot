@@ -695,7 +695,7 @@ async def controlpanel(
         + f"\n• Current admin roles: {current_roles}"
     )
 
-@bot.tree.command(name="glaze", description="Send an anonymous glaze to someone (once every 24h).")
+@bot.tree.command(name="glaze", description="Send an anonymous glaze to someone (once every 12h.")
 @app_commands.describe(member="Who are you glazing?", message="Write something nice (keep it SFW!)")
 async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, message: str):
     guild = await get_single_guild()
@@ -726,8 +726,8 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
     last = data["cooldowns"].get(str(interaction.user.id))
     if last:
         diff = now_utc() - parse_iso(last)
-        if diff < timedelta(hours=24):
-            await interaction.response.send_message("⏳ You can only glaze once every 24 hours.", ephemeral=True)
+        if diff < timedelta(hours=12):
+            await interaction.response.send_message("⏳ You can only glaze once every 12 hours.", ephemeral=True)
             return
 
     g_id = str(uuid.uuid4())
@@ -790,12 +790,11 @@ async def glazeleaderboard_cmd(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-@bot.tree.command(name="testdrop", description="Force a Glaze drop for testing (admin only)")
-@app_commands.describe(kind="Which drop to test")
+@bot.tree.command(name="randomdrop", description="Force a Glaze drop for testing (admin only)")
+@app_commands.describe(kind="Manually drop a glaze")
 @app_commands.choices(
     kind=[
-        app_commands.Choice(name="Daily Glaze", value="daily"),
-        app_commands.Choice(name="Monthly Glaze", value="monthly")
+        app_commands.Choice(name="Daily Glaze", value="daily")
     ]
 )
 async def testdrop(interaction: discord.Interaction, kind: app_commands.Choice[str]):
@@ -917,7 +916,7 @@ async def help_cmd(
         name="✨ Commands",
         value=(
             "`/glaze <member> <message>`\n"
-            "Send an anonymous glaze (once every 24h)\n\n"
+            "Send an anonymous glaze (once every 12h)\n\n"
             "`/myglaze`\n"
             "View glazes you’ve received (buttons + DM option)\n\n"
             "`/glazeleaderboard`\n"
@@ -929,7 +928,7 @@ async def help_cmd(
     embed.add_field(
         name="🕒 Rules",
         value=(
-            "• One glaze every **24 hours**\n"
+            "• One glaze every **12 hours**\n"
             "• Anonymous by default\n"
             "• Must be **kind & SFW**\n"
             "• Reported glazes may be removed"
