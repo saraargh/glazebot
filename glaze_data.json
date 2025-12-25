@@ -14,7 +14,7 @@
     "daily_drop_minute": 0
   },
   "meta": {
-    "last_daily_drop_date": "2025-12-24",
+    "last_daily_drop_date": "2025-12-25",
     "last_monthly_announce": {}
   },
   "cooldowns": {
@@ -383,7 +383,7 @@
       "text": "please delete the server",
       "created_at": "2025-12-24T18:36:37.155737+00:00",
       "month_key": "2025-12",
-      "dropped_at": null,
+      "dropped_at": "2025-12-25T17:00:56.356946+00:00",
       "deleted": false,
       "reported": false
     },
@@ -394,7 +394,7 @@
       "text": "christmas glaze (kd must stay at the top of the leaderboard!!)",
       "created_at": "2025-12-25T14:30:09.749934+00:00",
       "month_key": "2025-12",
-      "dropped_at": null,
+      "dropped_at": "2025-12-25T17:00:56.955362+00:00",
       "deleted": false,
       "reported": false
     },
@@ -405,7 +405,7 @@
       "text": "you\u2019re so sweet pls don\u2019t leave the server I wanna talk to you more but time zones \ud83d\ude23\ud83d\ude23",
       "created_at": "2025-12-25T14:39:31.950290+00:00",
       "month_key": "2025-12",
-      "dropped_at": null,
+      "dropped_at": "2025-12-25T17:01:02.267706+00:00",
       "deleted": false,
       "reported": false
     }
