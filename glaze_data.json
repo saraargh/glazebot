@@ -14,7 +14,7 @@
     "daily_drop_minute": 0
   },
   "meta": {
-    "last_daily_drop_date": "2025-12-29",
+    "last_daily_drop_date": "2025-12-30",
     "last_monthly_announce": {}
   },
   "cooldowns": {
@@ -563,7 +563,7 @@
       "text": "super funny but man I don\u2019t chat to you enough we have such similar interests too",
       "created_at": "2025-12-29T17:01:13.566202+00:00",
       "month_key": "2025-12",
-      "dropped_at": null,
+      "dropped_at": "2025-12-30T17:00:04.281399+00:00",
       "deleted": false,
       "reported": false
     },
@@ -574,7 +574,7 @@
       "text": "so active and very funny",
       "created_at": "2025-12-29T17:03:09.924699+00:00",
       "month_key": "2025-12",
-      "dropped_at": null,
+      "dropped_at": "2025-12-30T17:00:04.852330+00:00",
       "deleted": false,
       "reported": false
     },
@@ -585,7 +585,7 @@
       "text": "Oversaw the pivoting of the server from struggling soyboy DN wasteland to multi-gaming opinionated gigachad mega complex, complete with world cups & pending talent show- goat4lyf",
       "created_at": "2025-12-30T16:49:58.163235+00:00",
       "month_key": "2025-12",
-      "dropped_at": null,
+      "dropped_at": "2025-12-30T17:00:09.938328+00:00",
       "deleted": false,
       "reported": false
     }
