@@ -14,7 +14,7 @@
     "daily_drop_minute": 0
   },
   "meta": {
-    "last_daily_drop_date": "2025-12-31",
+    "last_daily_drop_date": "2026-01-01",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -598,7 +598,7 @@
       "text": "such a funny guy! wish we spoke more chill and good on dn",
       "created_at": "2026-01-01T12:05:24.847507+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-01T17:00:17.212872+00:00",
       "deleted": false,
       "reported": false
     }
