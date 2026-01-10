@@ -14,7 +14,7 @@
     "daily_drop_minute": 0
   },
   "meta": {
-    "last_daily_drop_date": "2026-01-09",
+    "last_daily_drop_date": "2026-01-10",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -821,7 +821,7 @@
       "text": "GOAT. No more needs to be said.",
       "created_at": "2026-01-09T17:39:15.097028+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-10T17:00:17.138847+00:00",
       "deleted": false,
       "reported": false
     },
@@ -832,7 +832,7 @@
       "text": "Always fun to play games with you and hope you\u2019re having a good day!",
       "created_at": "2026-01-09T17:43:27.409166+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-10T17:00:17.667443+00:00",
       "deleted": false,
       "reported": false
     },
@@ -843,7 +843,7 @@
       "text": "Ngh you make my legs weak please keep flying this plane",
       "created_at": "2026-01-09T18:18:15.167932+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-10T17:00:22.797878+00:00",
       "deleted": false,
       "reported": false
     },
@@ -854,7 +854,7 @@
       "text": "You're so funny wish we chatted more pop up soon ? xxx",
       "created_at": "2026-01-09T18:41:37.398590+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-10T17:00:23.458799+00:00",
       "deleted": false,
       "reported": false
     },
@@ -865,7 +865,7 @@
       "text": "A man of God, stay strong soldier\ud83e\udee1",
       "created_at": "2026-01-10T16:16:52.113724+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-10T17:00:24.229310+00:00",
       "deleted": false,
       "reported": false
     }
