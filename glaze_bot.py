@@ -57,7 +57,7 @@ DAILY_PING_PREFIX = "🍯 A glaze has landed…"
 MONTHLY_PING_PREFIX = "🍯 MONTHLY GLAZE RESULTS..."
 
 FOOTER_TEXT = "Use /glaze to submit an anonymous glaze — remember to keep it SFW! ⚠️"
-DROP_FOOTER_TEXT = "Use /myglaze to view all your glazes or say thank you — sender stays anonymous 🍯"
+DROP_FOOTER_TEXT = "Use /help to learn how to send a glaze or say thank you!🍯"
 
 SELF_GLAZE_ROAST = "🚫🚫 {user} only ugly people glaze themselves — try being nice to someone else!"
 NOT_YOUR_MENU = "🍯 Hands off — this glaze menu isn’t yours!"
