@@ -14,7 +14,7 @@
     "daily_drop_minute": 0
   },
   "meta": {
-    "last_daily_drop_date": "2026-01-13",
+    "last_daily_drop_date": "2026-01-14",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -997,7 +997,7 @@
       "text": "no glaze for you, from yours truly <@581896881555374081>",
       "created_at": "2026-01-13T17:22:27.220042+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-14T17:00:10.301903+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1008,7 +1008,7 @@
       "text": "love you girl never stop being funny",
       "created_at": "2026-01-13T20:22:02.833963+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-14T17:00:11.204825+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1019,7 +1019,7 @@
       "text": "U are really nice and im happy that ur doing better than u were doing previously",
       "created_at": "2026-01-13T20:23:23.192014+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-14T17:00:12.100143+00:00",
       "deleted": false,
       "reported": false
     }
