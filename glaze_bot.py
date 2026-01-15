@@ -47,7 +47,7 @@ HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
 LONDON = ZoneInfo("Europe/London")
 
 # Defaults (can be overridden by /controlpanel settings)
-cooldown_hours: 12
+DEFAULT_COOLDOWN_HOURS = 12
 
 DEFAULT_DAILY_DROP_HOUR = 17
 DEFAULT_DAILY_DROP_MINUTE = 0
@@ -726,13 +726,13 @@ async def controlpanel(
     changes: List[str] = []
     
     if cooldown_hours is not None:
-    h = max(1, min(168, int(cooldown_hours)))
-    data["config"]["cooldown_hours"] = h
-    changes.append("• Cooldown updated ✅")  # doesn’t show the number publicly
-    await interaction.followup.send(
-        f"🔒 Cooldown is now **{h} hour(s)**.",
-        ephemeral=True
-    )
+        h = max(1, min(168, int(cooldown_hours)))
+        data["config"]["cooldown_hours"] = h
+        changes.append("• Cooldown updated ✅")  # doesn’t show the number publicly
+        await interaction.followup.send(
+            f"🔒 Cooldown is now **{h} hour(s)**.",
+            ephemeral=True
+        )
 
     if drop_channel is not None:
         data["config"]["drop_channel_id"] = drop_channel.id
@@ -802,7 +802,7 @@ async def controlpanel(
     )
 
 
-@bot.tree.command(name="glaze", description="Send an anonymous glaze to someone (once every 12h).")
+@bot.tree.command(name="glaze", description="Send an anonymous glaze to someone.")
 @app_commands.describe(member="Who are you glazing?", message="Write something nice (keep it SFW!)")
 async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, message: str):
     guild = await get_single_guild()
@@ -1015,7 +1015,7 @@ async def help_cmd(interaction: discord.Interaction, admin: bool | None = False)
     embed.add_field(
         name="🕒 Rules",
         value=(
-            "• One glaze every **{cd_hours} hours**\n"
+            f"• One glaze every **{cd_hours} hours**\n"
             "• Anonymous by default\n"
             "• Must be **kind & SFW**\n"
             "• Reported glazes may be removed"
