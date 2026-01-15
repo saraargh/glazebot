@@ -47,6 +47,8 @@ HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
 LONDON = ZoneInfo("Europe/London")
 
 # Defaults (can be overridden by /controlpanel settings)
+cooldown_hours: 12
+
 DEFAULT_DAILY_DROP_HOUR = 17
 DEFAULT_DAILY_DROP_MINUTE = 0
 
@@ -193,6 +195,15 @@ async def save_data(data: Dict[str, Any], sha: Optional[str], message: str):
 # =========================================================
 # Helpers
 # =========================================================
+
+def _get_cooldown_td(data: Dict[str, Any]) -> timedelta:
+    try:
+        hours = int(data.get("config", {}).get("cooldown_hours", 12))
+    except Exception:
+        hours = 12
+    hours = max(1, min(168, hours))  # 1h to 7 days
+    return timedelta(hours=hours)
+
 def now_utc():
     return datetime.now(timezone.utc)
 
@@ -694,6 +705,7 @@ async def report_glaze(interaction: discord.Interaction, glaze_id: str):
     daily_drop_limit='Daily drop limit: number (e.g. "3") or the literal string "all"',
     daily_drop_hour="Daily drop hour (0-23) London time",
     daily_drop_minute="Daily drop minute (0-59) London time",
+    cooldown_hours="Cooldown between /glaze uses (hours)",
 )
 async def controlpanel(
     interaction: discord.Interaction,
@@ -703,6 +715,7 @@ async def controlpanel(
     daily_drop_limit: str | None = None,
     daily_drop_hour: int | None = None,
     daily_drop_minute: int | None = None,
+    cooldown_hours: int | None = None,
 ):
     # MUST be non-ephemeral (interfering admins)
     if not interaction.user.guild_permissions.administrator:
@@ -711,6 +724,15 @@ async def controlpanel(
 
     data, sha = await load_data()
     changes: List[str] = []
+    
+    if cooldown_hours is not None:
+    h = max(1, min(168, int(cooldown_hours)))
+    data["config"]["cooldown_hours"] = h
+    changes.append("• Cooldown updated ✅")  # doesn’t show the number publicly
+    await interaction.followup.send(
+        f"🔒 Cooldown is now **{h} hour(s)**.",
+        ephemeral=True
+    )
 
     if drop_channel is not None:
         data["config"]["drop_channel_id"] = drop_channel.id
@@ -807,11 +829,16 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
 
     data, sha = await load_data()
 
+    cd = _get_cooldown_td(data)
+
     last = data["cooldowns"].get(str(interaction.user.id))
     if last:
         diff = now_utc() - parse_iso(last)
-        if diff < timedelta(hours=12):
-            await interaction.response.send_message("⏳ You can only glaze once every 12 hours.", ephemeral=True)
+        if diff < cd:
+            await interaction.response.send_message(
+                "⏳ You’re on cooldown — try again later.",
+                ephemeral=True
+            )
             return
 
     g_id = str(uuid.uuid4())
@@ -959,6 +986,7 @@ def compute_month_winner(data: Dict[str, Any], month_key_str: str) -> Optional[T
 async def help_cmd(interaction: discord.Interaction, admin: bool | None = False):
     data, _ = await load_data()
     hour, minute, limit = _get_daily_drop_settings(data)
+    cd_hours = int(_get_cooldown_td(data).total_seconds() // 3600)
     limit_str = "all" if limit == "all" else str(limit)
 
     embed = discord.Embed(
@@ -975,7 +1003,7 @@ async def help_cmd(interaction: discord.Interaction, admin: bool | None = False)
         name="✨ Commands",
         value=(
             "`/glaze <member> <message>`\n"
-            "Send an anonymous glaze (once every 12h)\n\n"
+            "Send an anonymous glaze (once every **{cd_hours} hours**)\n\n"
             "`/myglaze`\n"
             "View glazes you’ve received (buttons + DM option)\n\n"
             "`/glazeleaderboard`\n"
