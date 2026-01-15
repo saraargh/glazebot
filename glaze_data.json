@@ -11,7 +11,8 @@
     ],
     "daily_drop_limit": "all",
     "daily_drop_hour": 17,
-    "daily_drop_minute": 0
+    "daily_drop_minute": 0,
+    "cooldown_hours": 1
   },
   "meta": {
     "last_daily_drop_date": "2026-01-14",
