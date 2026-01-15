@@ -727,12 +727,8 @@ async def controlpanel(
     if cooldown_hours is not None:
         h = max(1, min(168, int(cooldown_hours)))
         data["config"]["cooldown_hours"] = h
-        changes.append("• Cooldown updated ✅")  # doesn’t show the number publicly
-        await interaction.followup.send(
-            f"🔒 Cooldown is now **{h} hour(s)**.",
-            ephemeral=True
-        )
-
+        changes.append(f"• Cooldown → {h} hour(s)")
+    
     if drop_channel is not None:
         data["config"]["drop_channel_id"] = drop_channel.id
         changes.append(f"• Drop channel → {drop_channel.mention}")
