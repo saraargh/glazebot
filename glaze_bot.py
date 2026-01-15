@@ -892,7 +892,7 @@ async def glazeleaderboard_cmd(interaction: discord.Interaction):
 
     if sender_counts:
         sorted_senders = sorted(sender_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        sender_lines = [f"**{i}.** <@{uid}> — **{cnt}** glazes sent" for i, (uid, cnt) in enumerate(sorted_senders, start=1)]
+        sender_lines = [f"**{i}.** <@{uid}>" for i, (uid, cnt) in enumerate(sorted_senders, start=1)]
     else:
         sender_lines = ["No glazes sent yet 🍯"]
 
