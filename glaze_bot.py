@@ -1003,7 +1003,7 @@ async def help_cmd(interaction: discord.Interaction, admin: bool | None = False)
         name="✨ Commands",
         value=(
             "`/glaze <member> <message>`\n"
-            "Send an anonymous glaze (once every **{cd_hours} hours**)\n\n"
+            "Send an anonymous glaze\n\n"
             "`/myglaze`\n"
             "View glazes you’ve received (buttons + DM option)\n\n"
             "`/glazeleaderboard`\n"
@@ -1015,7 +1015,7 @@ async def help_cmd(interaction: discord.Interaction, admin: bool | None = False)
     embed.add_field(
         name="🕒 Rules",
         value=(
-            "• One glaze every **12 hours**\n"
+            "• One glaze every **{cd_hours} hours**\n"
             "• Anonymous by default\n"
             "• Must be **kind & SFW**\n"
             "• Reported glazes may be removed"
