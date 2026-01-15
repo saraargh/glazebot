@@ -47,8 +47,6 @@ HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
 LONDON = ZoneInfo("Europe/London")
 
 # Defaults (can be overridden by /controlpanel settings)
-DEFAULT_COOLDOWN_HOURS = 12
-
 DEFAULT_DAILY_DROP_HOUR = 17
 DEFAULT_DAILY_DROP_MINUTE = 0
 
@@ -103,6 +101,7 @@ DEFAULT_DATA: Dict[str, Any] = {
         "daily_drop_limit": 1,
         "daily_drop_hour": DEFAULT_DAILY_DROP_HOUR,
         "daily_drop_minute": DEFAULT_DAILY_DROP_MINUTE,
+        "cooldown_hours": 12,
     },
     "meta": {
         "last_daily_drop_date": None,
