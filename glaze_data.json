@@ -15,7 +15,7 @@
     "cooldown_hours": 1
   },
   "meta": {
-    "last_daily_drop_date": "2026-01-17",
+    "last_daily_drop_date": "2026-01-18",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -1119,7 +1119,7 @@
       "text": "Asked for a glaze so here's one. Good ragebaiter and good ball knowledge. Also plays outlast trials so really he's the goat.",
       "created_at": "2026-01-17T17:25:22.831103+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-18T17:00:18.265629+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1130,7 +1130,7 @@
       "text": "No explanation needed give him glaze of the month you cunts!",
       "created_at": "2026-01-17T18:46:38.635869+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-18T17:00:18.776604+00:00",
       "deleted": false,
       "reported": false
     }
