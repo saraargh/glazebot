@@ -29,7 +29,7 @@
     "924686780408676392": "2025-12-18T11:11:39.999052+00:00",
     "1355886703767847064": "2025-12-18T11:12:50.682476+00:00",
     "300738774332080128": "2026-01-18T17:07:13.919330+00:00",
-    "865401742274330674": "2026-01-11T17:06:42.573018+00:00",
+    "865401742274330674": "2026-01-19T17:39:11.979629+00:00",
     "847045429086126082": "2026-01-18T23:35:06.729979+00:00",
     "1248020591823425626": "2026-01-09T18:18:15.167932+00:00",
     "460480780460752907": "2026-01-13T17:22:27.220042+00:00",
@@ -1186,6 +1186,17 @@
       "created_at": "2026-01-19T14:02:21.679179+00:00",
       "month_key": "2026-01",
       "dropped_at": "2026-01-19T17:00:23.571857+00:00",
+      "deleted": false,
+      "reported": false
+    },
+    {
+      "id": "d8d58603-1b20-42b1-a9d1-c0ad22d044a8",
+      "sender_id": 865401742274330674,
+      "recipient_id": 217015976300904465,
+      "text": "you are honestly one of my favorite people in here! thank you for always playing stuff with me and even sometimes that you are an asshole, you are a funny asshole. thank you for being caring and honestly for being a good friend too!",
+      "created_at": "2026-01-19T17:39:11.979629+00:00",
+      "month_key": "2026-01",
+      "dropped_at": null,
       "deleted": false,
       "reported": false
     }
