@@ -15,7 +15,7 @@
     "cooldown_hours": 1
   },
   "meta": {
-    "last_daily_drop_date": "2026-01-18",
+    "last_daily_drop_date": "2026-01-19",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -1141,7 +1141,7 @@
       "text": "you are my goat.",
       "created_at": "2026-01-18T17:07:13.919330+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-19T17:00:16.050988+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1152,7 +1152,7 @@
       "text": "Belongs behind bars",
       "created_at": "2026-01-18T17:47:54.885570+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-19T17:00:16.658694+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1163,7 +1163,7 @@
       "text": "you\u2019re a funny little bugger",
       "created_at": "2026-01-18T18:21:38.581047+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-19T17:00:21.911570+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1174,7 +1174,7 @@
       "text": "He's a real one",
       "created_at": "2026-01-18T23:35:06.729979+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-19T17:00:22.508188+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1185,7 +1185,7 @@
       "text": "glorious leader",
       "created_at": "2026-01-19T14:02:21.679179+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-19T17:00:23.571857+00:00",
       "deleted": false,
       "reported": false
     }
