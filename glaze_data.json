@@ -15,7 +15,7 @@
     "cooldown_hours": 1
   },
   "meta": {
-    "last_daily_drop_date": "2026-01-19",
+    "last_daily_drop_date": "2026-01-20",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -1196,7 +1196,7 @@
       "text": "you are honestly one of my favorite people in here! thank you for always playing stuff with me and even sometimes that you are an asshole, you are a funny asshole. thank you for being caring and honestly for being a good friend too!",
       "created_at": "2026-01-19T17:39:11.979629+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-20T17:00:16.457750+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1207,7 +1207,7 @@
       "text": "too active \ud83d\udd25",
       "created_at": "2026-01-19T19:54:56.431233+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-20T17:00:17.309196+00:00",
       "deleted": false,
       "reported": false
     }
