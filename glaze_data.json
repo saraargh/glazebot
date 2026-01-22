@@ -42,7 +42,7 @@
     "536620158047879179": "2025-12-30T16:49:58.163235+00:00",
     "487879272875425792": "2026-01-05T18:20:31.353477+00:00",
     "1451765667618357281": "2026-01-07T17:18:59.992624+00:00",
-    "277271767964188673": "2026-01-09T17:43:27.409166+00:00",
+    "277271767964188673": "2026-01-22T12:05:03.244527+00:00",
     "217015976300904465": "2026-01-20T17:38:03.007893+00:00"
   },
   "glazes": [
@@ -1306,6 +1306,17 @@
       "recipient_id": 1238834298338152498,
       "text": "you are honestly one of my favorite people in here",
       "created_at": "2026-01-22T02:53:17.552012+00:00",
+      "month_key": "2026-01",
+      "dropped_at": null,
+      "deleted": false,
+      "reported": false
+    },
+    {
+      "id": "c76d2722-ac04-4af5-a379-4a6fc8e54bc9",
+      "sender_id": 277271767964188673,
+      "recipient_id": 871450866186608730,
+      "text": "You hate the sever how I wish I could. With your mentoring maybe I too can despise the server properly. But honestly you\u2019re a fucking delight and good at dbd.",
+      "created_at": "2026-01-22T12:05:03.244527+00:00",
       "month_key": "2026-01",
       "dropped_at": null,
       "deleted": false,
