@@ -15,7 +15,7 @@
     "cooldown_hours": 1
   },
   "meta": {
-    "last_daily_drop_date": "2026-01-21",
+    "last_daily_drop_date": "2026-01-22",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -1274,7 +1274,7 @@
       "text": "Let me hit \ud83d\ude0b",
       "created_at": "2026-01-21T17:20:40.117725+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-22T17:00:16.188506+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1285,7 +1285,7 @@
       "text": "if the whole server were to suddenly get transported to an isekai world, you\u2019re one of the few that won\u2019t die immediately \u2764\ufe0f",
       "created_at": "2026-01-21T20:49:02.176657+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-22T17:00:16.714093+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1296,7 +1296,7 @@
       "text": "come back \ud83d\ude14",
       "created_at": "2026-01-22T00:01:31.257934+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-22T17:00:21.749593+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1307,7 +1307,7 @@
       "text": "you are honestly one of my favorite people in here",
       "created_at": "2026-01-22T02:53:17.552012+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-22T17:00:22.357040+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1318,7 +1318,7 @@
       "text": "You hate the sever how I wish I could. With your mentoring maybe I too can despise the server properly. But honestly you\u2019re a fucking delight and good at dbd.",
       "created_at": "2026-01-22T12:05:03.244527+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-22T17:00:23.300868+00:00",
       "deleted": false,
       "reported": false
     }
