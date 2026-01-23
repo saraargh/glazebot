@@ -15,7 +15,7 @@
     "cooldown_hours": 1
   },
   "meta": {
-    "last_daily_drop_date": "2026-01-22",
+    "last_daily_drop_date": "2026-01-23",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -1329,7 +1329,7 @@
       "text": "Glazing myself as usual (william)",
       "created_at": "2026-01-22T17:29:20.027050+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-23T17:00:16.096624+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1340,7 +1340,7 @@
       "text": "Book your flights already you CUNT",
       "created_at": "2026-01-22T17:57:45.606737+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-23T17:00:16.845360+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1351,7 +1351,7 @@
       "text": "i just can\u2019t prove it",
       "created_at": "2026-01-22T20:15:01.542878+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-23T17:00:21.943490+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1362,7 +1362,7 @@
       "text": "Top racist in the server",
       "created_at": "2026-01-22T21:40:38.307588+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-23T17:00:22.525815+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1373,7 +1373,7 @@
       "text": "top vabber",
       "created_at": "2026-01-23T13:16:53.024083+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-23T17:00:23.098517+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1384,7 +1384,7 @@
       "text": "greg\u2019s a lucky man",
       "created_at": "2026-01-23T16:53:10.208917+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-23T17:00:28.275627+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1395,7 +1395,7 @@
       "text": "Never fail to make me laugh. Thanks for always playing death note and making it fun, this server truly does not deserve you. From your best friend \ud83d\ude0e",
       "created_at": "2026-01-23T16:56:26.160007+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-23T17:00:28.938166+00:00",
       "deleted": false,
       "reported": false
     }
