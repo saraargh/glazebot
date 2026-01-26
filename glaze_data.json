@@ -15,7 +15,7 @@
     "cooldown_hours": 1
   },
   "meta": {
-    "last_daily_drop_date": "2026-01-25",
+    "last_daily_drop_date": "2026-01-26",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -1593,7 +1593,7 @@
       "text": "Gave us free UFC how can you complain?",
       "created_at": "2026-01-25T17:09:23.357841+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-26T17:00:16.172249+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1604,7 +1604,7 @@
       "text": "thank you for dealing with my shit \u2764\ufe0f",
       "created_at": "2026-01-25T17:11:38.836616+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-26T17:00:17.112682+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1615,7 +1615,7 @@
       "text": "goat chinese food enjoyer",
       "created_at": "2026-01-25T21:05:06.454885+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-26T17:00:21.968405+00:00",
       "deleted": false,
       "reported": false
     }
