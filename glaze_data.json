@@ -15,7 +15,7 @@
     "cooldown_hours": 1
   },
   "meta": {
-    "last_daily_drop_date": "2026-01-27",
+    "last_daily_drop_date": "2026-01-28",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -1648,7 +1648,7 @@
       "text": "winner winner chicken dinenr",
       "created_at": "2026-01-27T17:13:43.145268+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-28T17:00:16.320719+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1659,7 +1659,7 @@
       "text": "The actual best landing strip member",
       "created_at": "2026-01-27T17:43:42.513494+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-28T17:00:17.001793+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1670,7 +1670,7 @@
       "text": "Made an art channel. This is peak.",
       "created_at": "2026-01-28T07:25:33.923652+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-28T17:00:17.889788+00:00",
       "deleted": false,
       "reported": false
     }
