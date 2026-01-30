@@ -15,7 +15,7 @@
     "cooldown_hours": 1
   },
   "meta": {
-    "last_daily_drop_date": "2026-01-29",
+    "last_daily_drop_date": "2026-01-30",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00"
     }
@@ -1703,7 +1703,7 @@
       "text": "Donald Trump but younger",
       "created_at": "2026-01-30T02:02:50.683829+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-30T17:00:16.220353+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1714,7 +1714,7 @@
       "text": "must be good cause sarah says he's the only good man",
       "created_at": "2026-01-30T12:12:02.126741+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-30T17:00:16.855957+00:00",
       "deleted": false,
       "reported": false
     },
@@ -1725,7 +1725,7 @@
       "text": "Mandatory Greg glaze to the face",
       "created_at": "2026-01-30T13:23:48.094424+00:00",
       "month_key": "2026-01",
-      "dropped_at": null,
+      "dropped_at": "2026-01-30T17:00:21.715550+00:00",
       "deleted": false,
       "reported": false
     }
