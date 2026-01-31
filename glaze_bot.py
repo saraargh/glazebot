@@ -62,6 +62,8 @@ DROP_FOOTER_TEXT = "Use /help to learn how to send a glaze or say thank you!🍯
 SELF_GLAZE_ROAST = "🚫🚫 {user} only ugly people glaze themselves — try being nice to someone else!"
 NOT_YOUR_MENU = "🍯 Hands off — this glaze menu isn’t yours!"
 
+GLAZE_DISABLED_MSG = "🍯 Glaze has been switched off by the admins. Try again later."
+
 MONTHLY_GIF_URL = "https://cdn.discordapp.com/attachments/1450977394948051015/IMG_5594.gif"
 
 LOCK_GUILD_ID = int(os.getenv("GUILD_ID", "0"))
@@ -102,6 +104,7 @@ DEFAULT_DATA: Dict[str, Any] = {
         "daily_drop_hour": DEFAULT_DAILY_DROP_HOUR,
         "daily_drop_minute": DEFAULT_DAILY_DROP_MINUTE,
         "cooldown_hours": 12,
+        "enabled": True,
     },
     "meta": {
         "last_daily_drop_date": None,
@@ -705,6 +708,7 @@ async def report_glaze(interaction: discord.Interaction, glaze_id: str):
     daily_drop_hour="Daily drop hour (0-23) London time",
     daily_drop_minute="Daily drop minute (0-59) London time",
     cooldown_hours="Cooldown between /glaze uses (hours)",
+    glaze_enabled="Enable/disable Glaze submissions (True=on, False=off)",
 )
 async def controlpanel(
     interaction: discord.Interaction,
@@ -715,6 +719,7 @@ async def controlpanel(
     daily_drop_hour: int | None = None,
     daily_drop_minute: int | None = None,
     cooldown_hours: int | None = None,
+    glaze_enabled: bool | None = None,
 ):
     # MUST be non-ephemeral (interfering admins)
     if not interaction.user.guild_permissions.administrator:
@@ -728,6 +733,18 @@ async def controlpanel(
         h = max(1, min(168, int(cooldown_hours)))
         data["config"]["cooldown_hours"] = h
         changes.append(f"• Cooldown → {h} hour(s)")
+    
+    data, sha = await load_data()
+changes: List[str] = []
+    
+if cooldown_hours is not None:
+    h = max(1, min(168, int(cooldown_hours)))
+    data["config"]["cooldown_hours"] = h
+    changes.append(f"• Cooldown → {h} hour(s)")
+
+if glaze_enabled is not None:
+    data["config"]["enabled"] = bool(glaze_enabled)
+    changes.append(f"• Glaze submissions → {'ON ✅' if glaze_enabled else 'OFF 📴'}")
     
     if drop_channel is not None:
         data["config"]["drop_channel_id"] = drop_channel.id
@@ -782,12 +799,14 @@ async def controlpanel(
     hour, minute, limit = _get_daily_drop_settings(data)
     current_roles = ", ".join(f"<@&{r}>" for r in data["config"]["admin_role_ids"]) or "None"
     limit_str = "all" if limit == "all" else str(limit)
+    enabled = bool(data["config"].get("enabled", True))
 
     await interaction.response.send_message(
         "🍯 **Glaze configuration updated**\n"
         + "\n".join(changes)
         + f"\n\n**Current settings:**"
         + f"\n• Admin roles: {current_roles}"
+        + f"\n• Glaze submissions: {'ON ✅' if enabled else 'OFF 📴'}"
         + f"\n• Daily drop time: {hour:02d}:{minute:02d} (London)"
         + f"\n• Daily drop limit: {limit_str}"
         + "\n\n**Daily drop limit rules:**"
@@ -823,6 +842,10 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
     _cached_sha = None
 
     data, sha = await load_data()
+    
+    if not bool(data.get("config", {}).get("enabled", True)):
+    await interaction.response.send_message(GLAZE_DISABLED_MSG, ephemeral=True)
+    return
 
     cd = _get_cooldown_td(data)
 
@@ -902,6 +925,11 @@ async def glazeleaderboard_cmd(interaction: discord.Interaction):
 @bot.tree.command(name="randomdrop", description="Drop one random pending glaze right now (Glaze admins only).")
 async def randomdrop_cmd(interaction: discord.Interaction):
     data, sha = await load_data()
+    
+    if not bool(data.get("config", {}).get("enabled", True)):
+        await interaction.response.send_message("🍯 Glaze is switched off right now.", ephemeral=True)
+        return
+    
     admin_roles = data["config"].get("admin_role_ids", [])
 
     if not is_admin(interaction, admin_roles):
@@ -1101,6 +1129,10 @@ async def glaze_scheduler():
             return
 
         data, sha = await load_data()
+        
+        if not bool(data.get("config", {}).get("enabled", True)):
+            return
+        
         drop_cid = data.get("config", {}).get("drop_channel_id")
         if not drop_cid:
             return
