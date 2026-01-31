@@ -729,14 +729,6 @@ async def controlpanel(
     data, sha = await load_data()
     changes: List[str] = []
     
-    if cooldown_hours is not None:
-        h = max(1, min(168, int(cooldown_hours)))
-        data["config"]["cooldown_hours"] = h
-        changes.append(f"• Cooldown → {h} hour(s)")
-    
-    data, sha = await load_data()
-changes: List[str] = []
-    
 if cooldown_hours is not None:
     h = max(1, min(168, int(cooldown_hours)))
     data["config"]["cooldown_hours"] = h
@@ -844,8 +836,8 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
     data, sha = await load_data()
     
     if not bool(data.get("config", {}).get("enabled", True)):
-    await interaction.response.send_message(GLAZE_DISABLED_MSG, ephemeral=True)
-    return
+        await interaction.response.send_message(GLAZE_DISABLED_MSG, ephemeral=True)
+        return
 
     cd = _get_cooldown_td(data)
 
