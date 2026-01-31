@@ -728,16 +728,16 @@ async def controlpanel(
 
     data, sha = await load_data()
     changes: List[str] = []
-    
-if cooldown_hours is not None:
-    h = max(1, min(168, int(cooldown_hours)))
-    data["config"]["cooldown_hours"] = h
-    changes.append(f"• Cooldown → {h} hour(s)")
 
-if glaze_enabled is not None:
-    data["config"]["enabled"] = bool(glaze_enabled)
-    changes.append(f"• Glaze submissions → {'ON ✅' if glaze_enabled else 'OFF 📴'}")
-    
+    if cooldown_hours is not None:
+        h = max(1, min(168, int(cooldown_hours)))
+        data["config"]["cooldown_hours"] = h
+        changes.append(f"• Cooldown → {h} hour(s)")
+
+    if glaze_enabled is not None:
+        data["config"]["enabled"] = bool(glaze_enabled)
+        changes.append(f"• Glaze submissions → {'ON ✅' if glaze_enabled else 'OFF 📴'}")
+
     if drop_channel is not None:
         data["config"]["drop_channel_id"] = drop_channel.id
         changes.append(f"• Drop channel → {drop_channel.mention}")
@@ -769,7 +769,9 @@ if glaze_enabled is not None:
                 data["config"]["daily_drop_limit"] = n
                 changes.append(f"• Daily drop limit → {n}")
             except Exception:
-                await interaction.response.send_message('🍯 Invalid daily_drop_limit. Use a number like "3" or the literal string "all".')
+                await interaction.response.send_message(
+                    '🍯 Invalid daily_drop_limit. Use a number like "3" or the literal string "all".'
+                )
                 return
 
     if daily_drop_hour is not None:
