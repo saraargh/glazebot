@@ -137,9 +137,11 @@ def _merge_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
             merged[k] = v
     return merged
 
-
 async def load_data() -> Tuple[Dict[str, Any], Optional[str]]:
     global _cached_data, _cached_sha
+
+    need_create = False
+    created_data: Optional[Dict[str, Any]] = None
 
     async with _store_lock:
         if _cached_data is not None:
@@ -160,11 +162,21 @@ async def load_data() -> Tuple[Dict[str, Any], Optional[str]]:
             return _cached_data, _cached_sha
 
         if r.status_code == 404:
-            _cached_data = _deepcopy(DEFAULT_DATA)
-            await save_data(_cached_data, None, "Create glaze_data.json")
-            return _cached_data, None
+            created_data = _deepcopy(DEFAULT_DATA)
+            _cached_data = created_data
+            _cached_sha = None
+            need_create = True
 
-        raise RuntimeError(r.text)
+        else:
+            raise RuntimeError(r.text)
+
+    # IMPORTANT: save OUTSIDE the lock
+    if need_create and created_data is not None:
+        await save_data(created_data, None, "Create glaze_data.json")
+        return created_data, None
+
+    # fallback (shouldn't hit)
+    return _cached_data or _deepcopy(DEFAULT_DATA), _cached_sha
 
 
 async def save_data(data: Dict[str, Any], sha: Optional[str], message: str):
