@@ -1108,6 +1108,104 @@ async def help_cmd(interaction: discord.Interaction, admin: bool | None = False)
 
     await interaction.response.send_message(embed=embed)
 
+###forcewinner####
+@bot.tree.command(
+    name="force_winner",
+    description="Force-calculate & post a monthly winner (Glaze admins only)."
+)
+@app_commands.describe(
+    month="Month to tally in YYYY-MM (blank = last month)",
+    override="Post even if this month was already announced"
+)
+async def force_winner_cmd(
+    interaction: discord.Interaction,
+    month: str | None = None,
+    override: bool | None = False
+):
+    # ---- admin check (Glaze admins)
+    data, _ = await load_data()
+    admin_roles = data.get("config", {}).get("admin_role_ids", []) or []
+    if not is_admin(interaction, admin_roles):
+        await interaction.response.send_message("🚫 You don’t have permission to do that.", ephemeral=True)
+        return
+
+    guild = await get_single_guild()
+    if not guild:
+        await interaction.response.send_message("⚠️ Server not ready.", ephemeral=True)
+        return
+
+    drop_ch = await get_drop_channel(guild)
+    if not drop_ch:
+        await interaction.response.send_message(
+            "⚠️ Drop channel isn’t set. Ask an admin to run /controlpanel.",
+            ephemeral=True
+        )
+        return
+
+    # IMPORTANT: always read latest JSON (not stale cache)
+    global _cached_data, _cached_sha
+    _cached_data = None
+    _cached_sha = None
+
+    data, sha = await load_data()
+
+    # ---- pick month (default = last month, London time)
+    now_ldn = datetime.now(tz=LONDON)
+    if month and month.strip():
+        mk = month.strip()
+        try:
+            datetime.strptime(mk + "-01", "%Y-%m-%d")
+        except Exception:
+            await interaction.response.send_message(
+                "🍯 Invalid month. Use **YYYY-MM** (e.g. `2026-01`).",
+                ephemeral=True
+            )
+            return
+    else:
+        # last month (London)
+        prev_month_dt = (now_ldn.replace(day=1) - timedelta(days=1))
+        mk = prev_month_dt.strftime("%Y-%m")
+
+    # ---- already announced?
+    last_map = data.get("meta", {}).get("last_monthly_announce", {})
+    if not isinstance(last_map, dict):
+        data.setdefault("meta", {})["last_monthly_announce"] = {}
+        last_map = data["meta"]["last_monthly_announce"]
+
+    if last_map.get(mk) and not override:
+        await interaction.response.send_message(
+            f"🍯 Monthly winner for **{mk}** was already announced.\n"
+            f"Run again with `override: True` to post it again.",
+            ephemeral=True
+        )
+        return
+
+    # ---- compute winner for that month
+    winner = compute_month_winner(data, mk)
+    if not winner:
+        await interaction.response.send_message(
+            f"🍯 No glazes found for **{mk}** — nothing to tally.",
+            ephemeral=True
+        )
+        return
+
+    winner_id, count = winner
+
+    # ---- post publicly
+    await drop_ch.send(f"{MONTHLY_PING_PREFIX}\n@everyone")
+    await drop_ch.send(embed=build_monthly_embed(mk, f"<@{winner_id}>", count))
+
+    # ---- update JSON markers + leaderboard
+    data.setdefault("wins", {})
+    data["wins"][str(winner_id)] = int(data["wins"].get(str(winner_id), 0)) + 1
+    data["meta"]["last_monthly_announce"][mk] = iso_utc(now_utc())
+
+    await save_data(data, sha, message=f"Force monthly most glazed {mk}")
+
+    await interaction.response.send_message(
+        f"✅ Posted monthly winner for **{mk}**.\nWinner: <@{winner_id}> with **{count}** glazes.",
+        ephemeral=True
+    )
 
 # =========================================================
 # Scheduler
@@ -1174,7 +1272,7 @@ async def glaze_scheduler():
 
         # monthly drop
         if is_last_day_of_month_london(now_ldn) and now_ldn.hour == MONTHLY_DROP_HOUR and now_ldn.minute == MONTHLY_DROP_MINUTE:
-            mk = datetime.now(timezone.utc).strftime("%Y-%m")
+            mk = now_ldn.strftime("%Y-%m")
             already = data["meta"].get("last_monthly_announce", {}).get(mk)
             if not already:
                 winner = compute_month_winner(data, mk)
