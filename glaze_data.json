@@ -16,7 +16,7 @@
     "enabled": true
   },
   "meta": {
-    "last_daily_drop_date": "2026-02-06",
+    "last_daily_drop_date": "2026-02-07",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00",
       "2026-01": "2026-02-01T12:32:16.847137+00:00"
@@ -1991,7 +1991,7 @@
       "text": "who tf even is this guy",
       "created_at": "2026-02-07T12:44:15.314765+00:00",
       "month_key": "2026-02",
-      "dropped_at": null,
+      "dropped_at": "2026-02-07T17:00:38.977740+00:00",
       "deleted": false,
       "reported": false
     },
@@ -2002,7 +2002,7 @@
       "text": "the best outlast trials player in here. also very easy to talk to",
       "created_at": "2026-02-07T16:32:53.052959+00:00",
       "month_key": "2026-02",
-      "dropped_at": null,
+      "dropped_at": "2026-02-07T17:00:39.488601+00:00",
       "deleted": false,
       "reported": false
     }
