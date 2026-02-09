@@ -14,7 +14,7 @@
     "daily_drop_minute": 0,
     "cooldown_hours": 1,
     "enabled": false,
-    "approvals_enabled": false,
+    "approvals_enabled": true,
     "approval_channel_id": 1404103684069265519
   },
   "meta": {
