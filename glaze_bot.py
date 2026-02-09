@@ -434,6 +434,14 @@ class ApprovalView(discord.ui.View):
         super().__init__(timeout=None)  # persistent-capable
         self.glaze_id = glaze_id
 
+        # ✅ make button custom_ids unique per glaze
+        for child in self.children:
+            if isinstance(child, discord.ui.Button):
+                if child.label == "✅ Approve":
+                    child.custom_id = f"glaze_approve:{glaze_id}"
+                elif child.label == "❌ Decline":
+                    child.custom_id = f"glaze_decline:{glaze_id}"
+
     async def _admin_check(self, interaction: discord.Interaction) -> bool:
         data, _ = await load_data()
         admin_roles = data.get("config", {}).get("admin_role_ids", []) or []
@@ -442,7 +450,7 @@ class ApprovalView(discord.ui.View):
             return False
         return True
 
-    @discord.ui.button(label="✅ Approve", style=discord.ButtonStyle.success, custom_id="glaze_approve_btn")
+    @discord.ui.button(label="✅ Approve", style=discord.ButtonStyle.success)
     async def approve_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._admin_check(interaction):
             return
@@ -471,7 +479,7 @@ class ApprovalView(discord.ui.View):
 
         await interaction.response.edit_message(content="✅ Approved.", view=self)
 
-    @discord.ui.button(label="❌ Decline", style=discord.ButtonStyle.danger, custom_id="glaze_decline_btn")
+    @discord.ui.button(label="❌ Decline", style=discord.ButtonStyle.danger)
     async def decline_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._admin_check(interaction):
             return
