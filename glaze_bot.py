@@ -970,39 +970,40 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
         await interaction.response.send_message("⚠️ Server not ready.", ephemeral=True)
         return
 
+    # ✅ ack instantly so GitHub work doesn't time out the interaction
+    await interaction.response.defer(ephemeral=True)
+
     if member.id == interaction.user.id:
-        await interaction.response.send_message(SELF_GLAZE_ROAST.format(user=interaction.user.mention), ephemeral=False)
+        await interaction.followup.send(
+            SELF_GLAZE_ROAST.format(user=interaction.user.mention),
+            ephemeral=False
+        )
         return
 
     text = message.strip()
     if len(text) < 10:
-        await interaction.response.send_message("🍯 Make it a bit longer — at least 10 characters.", ephemeral=True)
+        await interaction.followup.send("🍯 Make it a bit longer — at least 10 characters.", ephemeral=True)
         return
     if len(text) > 500:
-        await interaction.response.send_message("🍯 Keep it under 500 characters please.", ephemeral=True)
+        await interaction.followup.send("🍯 Keep it under 500 characters please.", ephemeral=True)
         return
 
-    # IMPORTANT: always read latest JSON, not stale cache
     global _cached_data, _cached_sha
     _cached_data = None
     _cached_sha = None
 
     data, sha = await load_data()
-    
+
     if not bool(data.get("config", {}).get("enabled", True)):
-        await interaction.response.send_message(GLAZE_DISABLED_MSG, ephemeral=True)
+        await interaction.followup.send(GLAZE_DISABLED_MSG, ephemeral=True)
         return
 
     cd = _get_cooldown_td(data)
-
     last = data["cooldowns"].get(str(interaction.user.id))
     if last:
         diff = now_utc() - parse_iso(last)
         if diff < cd:
-            await interaction.response.send_message(
-                "⏳ You’re on cooldown — try again later.",
-                ephemeral=True
-            )
+            await interaction.followup.send("⏳ You’re on cooldown — try again later.", ephemeral=True)
             return
 
     g_id = str(uuid.uuid4())
@@ -1016,9 +1017,9 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
         "month_key": month_key(created),
         "dropped_at": None,
         "deleted": False,
-        "reported": False,      
-        "approved": True,                 # default when approvals are OFF
-        "approval_status": "approved",    # approved / pending / declined
+        "reported": False,
+        "approved": True,
+        "approval_status": "approved",
         "approval_message": None
     }
 
@@ -1026,21 +1027,20 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
     data["cooldowns"][str(interaction.user.id)] = iso_utc(created)
 
     approvals_on = bool(data.get("config", {}).get("approvals_enabled", False))
-    
+
     if approvals_on:
         glaze["approved"] = False
         glaze["approval_status"] = "pending"
-    
+
         await save_data(data, sha, message="Add glaze (pending approval)")
-    
+
         approval_ch = await get_approval_channel(guild)
         if approval_ch:
             msg = await approval_ch.send(
                 embed=build_approval_embed(guild, glaze),
                 view=ApprovalView(glaze_id=g_id)
             )
-    
-            # store message ids for persistence
+
             _cached_data = None
             _cached_sha = None
             data2, sha2 = await load_data()
@@ -1053,10 +1053,8 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
                 await save_data(data2, sha2, message="Store approval message ids")
     else:
         await save_data(data, sha, message="Add glaze")
-    
-    # SAME RESPONSE REGARDLESS
-    await interaction.response.send_message("✅ Your glaze has been submitted! 🍯", ephemeral=True)
 
+    await interaction.followup.send("✅ Your glaze has been submitted! 🍯", ephemeral=True)
 
 @bot.tree.command(name="myglaze", description="See your glazes (buttons + DM option).")
 async def myglaze_cmd(interaction: discord.Interaction):
