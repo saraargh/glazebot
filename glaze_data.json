@@ -13,7 +13,7 @@
     "daily_drop_hour": 17,
     "daily_drop_minute": 0,
     "cooldown_hours": 1,
-    "enabled": true
+    "enabled": false
   },
   "meta": {
     "last_daily_drop_date": "2026-02-09",
