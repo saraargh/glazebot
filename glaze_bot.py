@@ -661,7 +661,7 @@ class MyGlazesView(discord.ui.View):
     async def _get_current_glaze(self) -> Optional[Dict[str, Any]]:
         data, _ = await load_data()
         g = next((x for x in data["glazes"] if x["id"] == self.glaze_ids[self.index]), None)
-        if not g or g.get("deleted"):
+        if not g or g.get("deleted") or not g.get("approved"):
             return None
         return g
 
@@ -1017,38 +1017,37 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
     data["glazes"].append(glaze)
     data["cooldowns"][str(interaction.user.id)] = iso_utc(created)
 
-approvals_on = bool(data.get("config", {}).get("approvals_enabled", False))
-
-if approvals_on:
-    glaze["approved"] = False
-    glaze["approval_status"] = "pending"
-
-    await save_data(data, sha, message="Add glaze (pending approval)")
-
-    approval_ch = await get_approval_channel(guild)
-    if approval_ch:
-        msg = await approval_ch.send(
-            embed=build_approval_embed(guild, glaze),
-            view=ApprovalView(glaze_id=g_id)
-        )
-
-        # store message ids for persistence
-        global _cached_data, _cached_sha
-        _cached_data = None
-        _cached_sha = None
-        data2, sha2 = await load_data()
-        g2 = next((x for x in data2["glazes"] if x["id"] == g_id), None)
-        if g2:
-            g2["approval_message"] = {
-                "channel_id": approval_ch.id,
-                "message_id": msg.id
-            }
-            await save_data(data2, sha2, message="Store approval message ids")
-else:
-    await save_data(data, sha, message="Add glaze")
-
-# SAME RESPONSE REGARDLESS
-await interaction.response.send_message("✅ Your glaze has been submitted! 🍯", ephemeral=True)
+    approvals_on = bool(data.get("config", {}).get("approvals_enabled", False))
+    
+    if approvals_on:
+        glaze["approved"] = False
+        glaze["approval_status"] = "pending"
+    
+        await save_data(data, sha, message="Add glaze (pending approval)")
+    
+        approval_ch = await get_approval_channel(guild)
+        if approval_ch:
+            msg = await approval_ch.send(
+                embed=build_approval_embed(guild, glaze),
+                view=ApprovalView(glaze_id=g_id)
+            )
+    
+            # store message ids for persistence
+            _cached_data = None
+            _cached_sha = None
+            data2, sha2 = await load_data()
+            g2 = next((x for x in data2["glazes"] if x["id"] == g_id), None)
+            if g2:
+                g2["approval_message"] = {
+                    "channel_id": approval_ch.id,
+                    "message_id": msg.id
+                }
+                await save_data(data2, sha2, message="Store approval message ids")
+    else:
+        await save_data(data, sha, message="Add glaze")
+    
+    # SAME RESPONSE REGARDLESS
+    await interaction.response.send_message("✅ Your glaze has been submitted! 🍯", ephemeral=True)
 
 
 @bot.tree.command(name="myglaze", description="See your glazes (buttons + DM option).")
