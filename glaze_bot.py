@@ -82,6 +82,19 @@ class GlazeBot(discord.Client):
 
     async def setup_hook(self):
         await self.tree.sync()
+
+        # ✅ restore approval buttons for pending approvals (so old messages still work after restart)
+        try:
+            data, _ = await load_data()
+            for g in data.get("glazes", []):
+                if g.get("approval_status") == "pending":
+                    msg = g.get("approval_message") or {}
+                    mid = msg.get("message_id")
+                    if mid:
+                        bot.add_view(ApprovalView(g["id"]), message_id=int(mid))
+        except Exception as e:
+            print("Approval restore error:", repr(e))
+
         glaze_scheduler.start()
 
     async def on_ready(self):
@@ -105,6 +118,8 @@ DEFAULT_DATA: Dict[str, Any] = {
         "daily_drop_minute": DEFAULT_DAILY_DROP_MINUTE,
         "cooldown_hours": 12,
         "enabled": True,
+        "approvals_enabled": False,
+        "approval_channel_id": None,
     },
     "meta": {
         "last_daily_drop_date": None,
@@ -370,6 +385,13 @@ async def get_report_channel(guild: discord.Guild) -> Optional[discord.TextChann
     ch = guild.get_channel(int(cid))
     return ch if isinstance(ch, discord.TextChannel) else None
 
+async def get_approval_channel(guild: discord.Guild) -> Optional[discord.TextChannel]:
+    data, _ = await load_data()
+    cid = data["config"].get("approval_channel_id")
+    if not cid:
+        return None
+    ch = guild.get_channel(int(cid))
+    return ch if isinstance(ch, discord.TextChannel) else None
 
 # =========================================================
 # UI: /myglaze hub view
@@ -393,6 +415,104 @@ class MyGlazeHubView(discord.ui.View):
             return
         await send_glaze_mail(interaction)
 
+###### UI APPROVAL########
+def build_approval_embed(guild: discord.Guild, glaze: Dict[str, Any]) -> discord.Embed:
+    recipient = guild.get_member(int(glaze["recipient_id"]))
+    recipient_txt = recipient.mention if recipient else f"<@{int(glaze['recipient_id'])}>"
+
+    e = discord.Embed(
+        title="🛂 Glaze Approval Needed",
+        description=f"**For:** {recipient_txt}\n\n**Glaze:**\n“{glaze['text']}”",
+        color=GLAZE_YELLOW
+    )
+    e.set_footer(text=f"Glaze ID: {glaze['id']}")
+    return e
+
+
+class ApprovalView(discord.ui.View):
+    def __init__(self, glaze_id: str):
+        super().__init__(timeout=None)  # persistent-capable
+        self.glaze_id = glaze_id
+
+    async def _admin_check(self, interaction: discord.Interaction) -> bool:
+        data, _ = await load_data()
+        admin_roles = data.get("config", {}).get("admin_role_ids", []) or []
+        if not is_admin(interaction, admin_roles):
+            await interaction.response.send_message("🚫 You don’t have permission to do that.", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="✅ Approve", style=discord.ButtonStyle.success, custom_id="glaze_approve_btn")
+    async def approve_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self._admin_check(interaction):
+            return
+
+        data, sha = await load_data()
+        g = next((x for x in data["glazes"] if x["id"] == self.glaze_id), None)
+        if not g:
+            await interaction.response.send_message("😔 That glaze no longer exists.", ephemeral=True)
+            return
+
+        if g.get("approval_status") != "pending":
+            await interaction.response.send_message("ℹ️ This glaze was already processed.", ephemeral=True)
+            return
+
+        g["approved"] = True
+        g["approval_status"] = "approved"
+        g["approved_at"] = iso_utc(now_utc())
+        g["approved_by"] = interaction.user.id
+
+        await save_data(data, sha, message="Approve glaze")
+
+        # disable buttons + mark message
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
+
+        await interaction.response.edit_message(content="✅ Approved.", view=self)
+
+    @discord.ui.button(label="❌ Decline", style=discord.ButtonStyle.danger, custom_id="glaze_decline_btn")
+    async def decline_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self._admin_check(interaction):
+            return
+
+        data, sha = await load_data()
+        g = next((x for x in data["glazes"] if x["id"] == self.glaze_id), None)
+        if not g:
+            await interaction.response.send_message("😔 That glaze no longer exists.", ephemeral=True)
+            return
+
+        if g.get("approval_status") != "pending":
+            await interaction.response.send_message("ℹ️ This glaze was already processed.", ephemeral=True)
+            return
+
+        g["approved"] = False
+        g["approval_status"] = "declined"
+        g["declined_at"] = iso_utc(now_utc())
+        g["declined_by"] = interaction.user.id
+        g["deleted"] = True  # ensures it never appears anywhere
+
+        await save_data(data, sha, message="Decline glaze")
+
+        # DM the sender
+        try:
+            u = await bot.fetch_user(int(g["sender_id"]))
+            await u.send(
+                "⚠️ Your glaze was **flagged as inappropriate** and wasn’t approved.\n\n"
+                "Please remember to be kind and keep glazes **SFW**. 🍯"
+            )
+        except Exception:
+            pass
+
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
+
+        sender_txt = f"<@{int(g['sender_id'])}>"
+        await interaction.response.edit_message(
+            content=f"❌ Declined (sender notified). Sender was: {sender_txt}",
+            view=self
+        )
 
 # =========================================================
 # UI: Say Thanks modal
@@ -618,7 +738,7 @@ class MyGlazesView(discord.ui.View):
 # =========================================================
 async def open_my_glazes(interaction: discord.Interaction):
     data, _ = await load_data()
-    glz = [g for g in data["glazes"] if int(g["recipient_id"]) == interaction.user.id and not g.get("deleted")]
+    glz = [g for g in data["glazes"] if int(g["recipient_id"]) == interaction.user.id and g.get("approved") and not g.get("deleted")]
     if not glz:
         await interaction.response.send_message("😔 You don’t have any glazes yet…", ephemeral=True)
         return
@@ -635,7 +755,7 @@ async def open_my_glazes(interaction: discord.Interaction):
 
 async def send_glaze_mail(interaction: discord.Interaction):
     data, _ = await load_data()
-    glz = [g for g in data["glazes"] if int(g["recipient_id"]) == interaction.user.id and not g.get("deleted")]
+    glz = [g for g in data["glazes"] if int(g["recipient_id"]) == interaction.user.id and g.get("approved") and not g.get("deleted")]
     if not glz:
         await interaction.response.send_message("😔 You don’t have any glazes yet…", ephemeral=True)
         return
@@ -721,6 +841,8 @@ async def report_glaze(interaction: discord.Interaction, glaze_id: str):
     daily_drop_minute="Daily drop minute (0-59) London time",
     cooldown_hours="Cooldown between /glaze uses (hours)",
     glaze_enabled="Enable/disable Glaze submissions (True=on, False=off)",
+    approval_channel="Channel where glazes go for approval",
+    approvals_enabled="Require approval before glazes are accepted",
 )
 async def controlpanel(
     interaction: discord.Interaction,
@@ -732,6 +854,8 @@ async def controlpanel(
     daily_drop_minute: int | None = None,
     cooldown_hours: int | None = None,
     glaze_enabled: bool | None = None,
+    approval_channel: discord.TextChannel | None = None,
+    approvals_enabled: bool | None = None,
 ):
     # MUST be non-ephemeral (interfering admins)
     if not interaction.user.guild_permissions.administrator:
@@ -740,6 +864,14 @@ async def controlpanel(
 
     data, sha = await load_data()
     changes: List[str] = []
+    
+    if approvals_enabled is not None:
+        data["config"]["approvals_enabled"] = bool(approvals_enabled)
+        changes.append(f"• Approvals → {'ON ✅' if approvals_enabled else 'OFF 📴'}")
+
+    if approval_channel is not None:
+        data["config"]["approval_channel_id"] = approval_channel.id
+        changes.append(f"• Approval channel → {approval_channel.mention}")
 
     if cooldown_hours is not None:
         h = max(1, min(168, int(cooldown_hours)))
@@ -876,21 +1008,53 @@ async def glaze_cmd(interaction: discord.Interaction, member: discord.Member, me
         "month_key": month_key(created),
         "dropped_at": None,
         "deleted": False,
-        "reported": False
+        "reported": False,      
+        "approved": True,                 # default when approvals are OFF
+        "approval_status": "approved",    # approved / pending / declined
+        "approval_message": None
     }
 
     data["glazes"].append(glaze)
     data["cooldowns"][str(interaction.user.id)] = iso_utc(created)
 
+approvals_on = bool(data.get("config", {}).get("approvals_enabled", False))
+
+if approvals_on:
+    glaze["approved"] = False
+    glaze["approval_status"] = "pending"
+
+    await save_data(data, sha, message="Add glaze (pending approval)")
+
+    approval_ch = await get_approval_channel(guild)
+    if approval_ch:
+        msg = await approval_ch.send(
+            embed=build_approval_embed(guild, glaze),
+            view=ApprovalView(glaze_id=g_id)
+        )
+
+        # store message ids for persistence
+        global _cached_data, _cached_sha
+        _cached_data = None
+        _cached_sha = None
+        data2, sha2 = await load_data()
+        g2 = next((x for x in data2["glazes"] if x["id"] == g_id), None)
+        if g2:
+            g2["approval_message"] = {
+                "channel_id": approval_ch.id,
+                "message_id": msg.id
+            }
+            await save_data(data2, sha2, message="Store approval message ids")
+else:
     await save_data(data, sha, message="Add glaze")
 
-    await interaction.response.send_message("✅ Your glaze has been submitted! 🍯", ephemeral=True)
+# SAME RESPONSE REGARDLESS
+await interaction.response.send_message("✅ Your glaze has been submitted! 🍯", ephemeral=True)
 
 
 @bot.tree.command(name="myglaze", description="See your glazes (buttons + DM option).")
 async def myglaze_cmd(interaction: discord.Interaction):
     data, _ = await load_data()
-    glz = [g for g in data["glazes"] if int(g["recipient_id"]) == interaction.user.id and not g.get("deleted")]
+    glz = [g for g in data["glazes"] if int(g["recipient_id"]) == interaction.user.id and g.get("approved") and not g.get("deleted")]
     if not glz:
         await interaction.response.send_message("😔 You don’t have any glazes yet… but your time will come 🍯", ephemeral=True)
         return
@@ -910,7 +1074,7 @@ async def glazeleaderboard_cmd(interaction: discord.Interaction):
 
     sender_counts: Dict[int, int] = {}
     for g in data.get("glazes", []):
-        if not g.get("deleted"):
+        if not g.get("deleted") and g.get("approved"):
             sid = int(g["sender_id"])
             sender_counts[sid] = sender_counts.get(sid, 0) + 1
 
@@ -952,7 +1116,7 @@ async def randomdrop_cmd(interaction: discord.Interaction):
         await interaction.response.send_message("⚠️ Drop channel isn’t set. Ask an admin to run /controlpanel.", ephemeral=True)
         return
 
-    pending = [g for g in data["glazes"] if not g.get("deleted") and not g.get("dropped_at")]
+    pending = [g for g in data["glazes"] if g.get("approved") and not g.get("deleted") and not g.get("dropped_at")]
     if not pending:
         await interaction.response.send_message("🍯 No pending glazes to drop.", ephemeral=True)
         return
@@ -979,7 +1143,7 @@ async def randomdrop_cmd(interaction: discord.Interaction):
 # Monthly winner calculation
 # =========================================================
 def compute_month_winner(data: Dict[str, Any], month_key_str: str) -> Optional[Tuple[int, int]]:
-    month_glazes = [g for g in data["glazes"] if g.get("month_key") == month_key_str and not g.get("deleted")]
+    month_glazes = [g for g in data["glazes"] if g.get("month_key") == month_key_str and g.get("approved") and not g.get("deleted")]
     if not month_glazes:
         return None
 
@@ -1253,7 +1417,7 @@ async def glaze_scheduler():
 
         if now_ldn.hour == hour and now_ldn.minute == minute:
             if data["meta"].get("last_daily_drop_date") != today_str:
-                pending = [g for g in data["glazes"] if not g.get("deleted") and not g.get("dropped_at")]
+                pending = [g for g in data["glazes"] if g.get("approved") and not g.get("deleted") and not g.get("dropped_at")]
                 pending.sort(key=lambda x: x.get("created_at", ""))  # oldest first
 
                 if pending:
