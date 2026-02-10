@@ -2152,7 +2152,10 @@
       "reported": false,
       "approved": false,
       "approval_status": "pending",
-      "approval_message": null
+      "approval_message": {
+        "channel_id": 1404103684069265519,
+        "message_id": 1470780637383229461
+      }
     }
   ],
   "wins": {
