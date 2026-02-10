@@ -18,7 +18,7 @@
     "approval_channel_id": 1404103684069265519
   },
   "meta": {
-    "last_daily_drop_date": "2026-02-09",
+    "last_daily_drop_date": "2026-02-10",
     "last_monthly_announce": {
       "2025-12": "2025-12-31T18:00:17.782065+00:00",
       "2026-01": "2026-02-01T12:32:16.847137+00:00"
@@ -2090,7 +2090,7 @@
       "text": "my goat \u2764\ufe0f",
       "created_at": "2026-02-10T03:39:21.665182+00:00",
       "month_key": "2026-02",
-      "dropped_at": null,
+      "dropped_at": "2026-02-10T17:00:07.105859+00:00",
       "deleted": false,
       "reported": false,
       "approved": true,
@@ -2109,7 +2109,7 @@
       "text": "we had a good time together, but I think it\u2019s time to move on and let the feelings go, I loved you enough and it\u2019s time to say goodbye. I know you loved me and wanted us to be together, but I can no longer go fourth. Goodbye my child, you have been obedient. \ud83d\udc94",
       "created_at": "2026-02-10T03:53:05.668644+00:00",
       "month_key": "2026-02",
-      "dropped_at": null,
+      "dropped_at": "2026-02-10T17:00:07.698917+00:00",
       "deleted": false,
       "reported": false,
       "approved": true,
@@ -2128,7 +2128,7 @@
       "text": "you are the kindest soul sir \u2763\ufe0f",
       "created_at": "2026-02-10T04:57:37.616866+00:00",
       "month_key": "2026-02",
-      "dropped_at": null,
+      "dropped_at": "2026-02-10T17:00:12.675920+00:00",
       "deleted": false,
       "reported": false,
       "approved": true,
@@ -2147,7 +2147,7 @@
       "text": "im happy we are okay now. if you ever need anything im here",
       "created_at": "2026-02-10T13:57:08.741761+00:00",
       "month_key": "2026-02",
-      "dropped_at": null,
+      "dropped_at": "2026-02-10T17:00:13.453969+00:00",
       "deleted": false,
       "reported": false,
       "approved": true,
@@ -2166,7 +2166,7 @@
       "text": "Had a dream that she threw her bra out the window and I caught it",
       "created_at": "2026-02-10T16:18:53.107505+00:00",
       "month_key": "2026-02",
-      "dropped_at": null,
+      "dropped_at": "2026-02-10T17:00:14.045376+00:00",
       "deleted": false,
       "reported": false,
       "approved": true,
