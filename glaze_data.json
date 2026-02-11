@@ -48,7 +48,7 @@
     "1451765667618357281": "2026-01-07T17:18:59.992624+00:00",
     "277271767964188673": "2026-01-22T12:05:03.244527+00:00",
     "217015976300904465": "2026-01-23T17:12:46.349516+00:00",
-    "1089732038304731169": "2026-02-10T03:53:05.668644+00:00"
+    "1089732038304731169": "2026-02-11T04:41:59.861705+00:00"
   },
   "glazes": [
     {
@@ -2177,6 +2177,20 @@
       },
       "approved_at": "2026-02-10T16:37:41.130224+00:00",
       "approved_by": 1238834298338152498
+    },
+    {
+      "id": "e9377598-64f9-436e-ab81-a44a526a1ae0",
+      "sender_id": 1089732038304731169,
+      "recipient_id": 460480780460752907,
+      "text": "i\u2019m sorry to hear that your grandma passed away yeah i actually am like obviously i'm i'm going to be upset about that innit yeah and hadiqa you know the only thing is yeah is that no one can force me to be your mate or anything yeah and i don't want to be mates wiv you alright",
+      "created_at": "2026-02-11T04:41:59.861705+00:00",
+      "month_key": "2026-02",
+      "dropped_at": null,
+      "deleted": false,
+      "reported": false,
+      "approved": false,
+      "approval_status": "pending",
+      "approval_message": null
     }
   ],
   "wins": {
