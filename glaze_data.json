@@ -13,7 +13,7 @@
     "daily_drop_hour": 17,
     "daily_drop_minute": 0,
     "cooldown_hours": 1,
-    "enabled": false,
+    "enabled": true,
     "approvals_enabled": true,
     "approval_channel_id": 1404103684069265519
   },
