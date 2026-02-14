@@ -2283,12 +2283,14 @@
       "dropped_at": null,
       "deleted": false,
       "reported": false,
-      "approved": false,
-      "approval_status": "pending",
+      "approved": true,
+      "approval_status": "approved",
       "approval_message": {
         "channel_id": 1404103684069265519,
         "message_id": 1472229761496514791
-      }
+      },
+      "approved_at": "2026-02-14T13:56:04.104819+00:00",
+      "approved_by": 1238834298338152498
     }
   ],
   "wins": {
