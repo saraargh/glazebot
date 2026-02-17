@@ -2321,9 +2321,11 @@
       "dropped_at": null,
       "deleted": false,
       "reported": false,
-      "approved": false,
-      "approval_status": "pending",
-      "approval_message": null
+      "approved": true,
+      "approval_status": "approved",
+      "approval_message": null,
+      "approved_at": "2026-02-17T13:57:27.686348+00:00",
+      "approved_by": 1238834298338152498
     },
     {
       "id": "e4715972-c5ef-4f32-9148-e0630c4732f7",
