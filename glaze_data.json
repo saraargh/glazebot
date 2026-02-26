@@ -2372,12 +2372,14 @@
       "dropped_at": null,
       "deleted": false,
       "reported": false,
-      "approved": false,
-      "approval_status": "pending",
+      "approved": true,
+      "approval_status": "approved",
       "approval_message": {
         "channel_id": 1404103684069265519,
         "message_id": 1476717701589241978
-      }
+      },
+      "approved_at": "2026-02-26T23:09:48.392847+00:00",
+      "approved_by": 1238834298338152498
     }
   ],
   "wins": {
